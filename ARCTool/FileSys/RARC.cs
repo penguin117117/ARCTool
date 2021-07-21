@@ -345,24 +345,40 @@ namespace ARCTool.FileSys
             long pos_FileDataSection = 0xC;
             long pos_FileDataSectionLength = 0x10;
 
-            bw.Write(Encoding.ASCII.GetBytes("RARC"));
+            var RARC = Encoding.ASCII.GetBytes("RARC");
+            var IDIC = In_DirectoryItemCount(dirstrs);
+            var Sum_IDIC = IDIC.Sum();
+            var FileEntryOffset = 0x20 + (dirstrs.Count() * 0x10) + 0x10;
+            var IntHexString20 = CS.StringToBytes((0x00000020).ToString("X8"));
+
+            bw.Write(RARC);
             CS.Null_Writer_Int32(bw);
-            bw.Write(CS.StringToBytes((0x00000020).ToString("X8")));
+            bw.Write(IntHexString20);
             CS.Null_Writer_Int32(bw,5);
             bw.Write(CS.StringToBytes((dirstrs.Count()).ToString("X8")));
-            bw.Write(CS.StringToBytes((0x00000020).ToString("X8")));
-            foreach (var diritem in dirstrs) {
-                var dirindir = Directory.GetDirectories(diritem, "*", SearchOption.TopDirectoryOnly);
-                var dirinfile = Directory.GetFiles(diritem, "*", SearchOption.TopDirectoryOnly);
-                var dirinitemCount = dirindir.Count() + dirinfile.Count()+2;
-                Console.WriteLine(dirinitemCount);
-            }
-            
+            bw.Write(IntHexString20);
+            bw.Write(CS.StringToBytes((Sum_IDIC).ToString("X8")));
+            bw.Write(CS.StringToBytes((FileEntryOffset).ToString("X8")));
+
+            Console.WriteLine(CS.ARC_Hash(".."));
             Console.WriteLine("RARC_End");
 
             //fs,bw終了処理
             fs.Close();
             bw.Close();
+        }
+
+        public static List<int> In_DirectoryItemCount(string[] DirStrs) {
+            List<int> item = new List<int>();
+            foreach (var diritem in DirStrs)
+            {
+                var dirindir = Directory.GetDirectories(diritem, "*", SearchOption.TopDirectoryOnly);
+                var dirinfile = Directory.GetFiles(diritem, "*", SearchOption.TopDirectoryOnly);
+                var dirinitemCount = dirindir.Count() + dirinfile.Count() + 2;
+                Console.WriteLine(dirinitemCount);
+                item.Add(dirinitemCount);
+            }
+            return item;
         }
         
     }
