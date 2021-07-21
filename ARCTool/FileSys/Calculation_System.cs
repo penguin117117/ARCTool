@@ -82,10 +82,9 @@ namespace ARCTool.FileSys
 
             for (int i = 0; i < write_rep_num; i++)
                 bw.Write(BitConverter.GetBytes(0x00000000));
-
-            //↓旧計算式
-            //bw.Write(BitConverter.GetBytes(0x00000000));
         }
+
+        
 
         public static UInt16 ARC_Hash(string strs) {
             UInt16 hashvalue = 0;

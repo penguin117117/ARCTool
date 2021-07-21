@@ -45,10 +45,9 @@ namespace ARCTool
             //}
             foreach (var path in all_path_strings) {
                 if (File.Exists(path)){
-                    
-                    Format_Checker.Type_Check(path);
                     Console.WriteLine(path);
-                    Console.WriteLine("ファイルです");
+                    Console.WriteLine("//////////以下解凍処理//////////");
+                    Format_Checker.Type_Check(path);
                 }
                 else if (Directory.Exists(path)){
                     var DirStrs = Directory.GetDirectories(path, "*", SearchOption.AllDirectories).OrderBy(sort => sort);
@@ -64,7 +63,19 @@ namespace ARCTool
                         continue;
                     }
                     Console.WriteLine(path);
-                    Console.WriteLine("圧縮可能なフォルダです");
+                    Console.WriteLine("//////////フォルダ確認専用//////////"+"フォルダカウント"+DirStrs.Count().ToString("X"));
+                    foreach (var dirpath in DirStrs) Console.WriteLine(dirpath);
+                    Console.WriteLine("");
+                    Console.WriteLine("//////////ファイル確認専用//////////");
+                    foreach (var filepath in FileStrs) Console.WriteLine(filepath);
+                    Console.WriteLine("");
+                    Console.WriteLine("//////////以下圧縮処理//////////");
+                    RARC rarc = new RARC();
+                    var arcfile = Path.GetFileName(path);
+                    var arcfolder = Path.GetDirectoryName(path);
+                    Console.WriteLine(arcfolder+@"\"+arcfile+".arc");
+                    rarc.Write(arcfolder + @"\" + arcfile + ".arc",DirStrs.ToArray(),FileStrs.ToArray());
+
                 }
                 else {
                     Console.WriteLine(path);

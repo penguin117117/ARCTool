@@ -337,8 +337,32 @@ namespace ARCTool.FileSys
             br.Close();
         }
 
-        public void Write() {
-        
+        public void Write(string rarc_path , string[] dirstrs ,string[] filestrs) {
+            FileStream fs = new FileStream(rarc_path, FileMode.Create);
+            BinaryWriter bw = new BinaryWriter(fs);
+
+            long pos_File_Size = 0x8;
+            long pos_FileDataSection = 0xC;
+            long pos_FileDataSectionLength = 0x10;
+
+            bw.Write(Encoding.ASCII.GetBytes("RARC"));
+            CS.Null_Writer_Int32(bw);
+            bw.Write(CS.StringToBytes((0x00000020).ToString("X8")));
+            CS.Null_Writer_Int32(bw,5);
+            bw.Write(CS.StringToBytes((dirstrs.Count()).ToString("X8")));
+            bw.Write(CS.StringToBytes((0x00000020).ToString("X8")));
+            foreach (var diritem in dirstrs) {
+                var dirindir = Directory.GetDirectories(diritem, "*", SearchOption.TopDirectoryOnly);
+                var dirinfile = Directory.GetFiles(diritem, "*", SearchOption.TopDirectoryOnly);
+                var dirinitemCount = dirindir.Count() + dirinfile.Count()+2;
+                Console.WriteLine(dirinitemCount);
+            }
+            
+            Console.WriteLine("RARC_End");
+
+            //fs,bw終了処理
+            fs.Close();
+            bw.Close();
         }
         
     }
