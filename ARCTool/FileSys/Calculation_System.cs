@@ -64,7 +64,7 @@ namespace ARCTool.FileSys
             //var bitreverse = bitarray.Reverse();
             //var bitarray2 = bitreverse.ToArray();
             var str = Encoding.GetEncoding(65001).GetString(bitarray) ;
-            Console.WriteLine(str.Substring(0 , str.Count()-1));
+            //Console.WriteLine(str.Substring(0 , str.Count()-1));
             return str.Substring(0, str.Count()-1);
         }
 
@@ -86,5 +86,16 @@ namespace ARCTool.FileSys
             //↓旧計算式
             //bw.Write(BitConverter.GetBytes(0x00000000));
         }
+
+        public static UInt16 ARC_Hash(string strs) {
+            UInt16 hashvalue = 0;
+            foreach (var ch in strs) {
+                hashvalue *= 3;
+                hashvalue += ch;
+            }
+            return hashvalue;
+        }
+
+        
     }
 }

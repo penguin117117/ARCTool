@@ -10,7 +10,14 @@ namespace ARCTool.FileSys
 {
     class RARC
     {
-       
+        public struct directory_index_path {
+            public int Index;
+            public string Path;
+            public directory_index_path(int index , string path) {
+                this.Index = index;
+                this.Path  = path;
+            }
+        }
 
         public struct node_items {
             public string Identifier;
@@ -46,37 +53,70 @@ namespace ARCTool.FileSys
             }
         }
 
+        public struct directoryindex_and_pathname {
+            public int index;
+            public string path;
+            public directoryindex_and_pathname(int arg1 , string arg2) {
+                this.index = arg1;
+                this.path = arg2;
+            }
+        
+        }
+
         private static List<node_items> Node_Items;
         private static List<directory_items> Directory_Items;
+        private static List<directoryindex_and_pathname> DirIndexAndPath;
+        private static List<directory_index_path> Directory_Index_Path;
+
         
-        public static void Read(string rarc_path)
+
+        public string Magic { get; set; }
+        public int FileSize { get; set; }
+        public int Unknown1 { get; set; }
+        public int FileDataOffset { get; set; }
+        public int FileDataLength01 { get; set; }
+        public int FileDataLength02 { get; set; }
+        public int Unknown2 { get; set; }
+        public int Unknown3 { get; set; }
+        public int NodeNum { get; set; }
+        public int FirstNodeOffset { get; set; }
+        public int TotalDirectoryCount { get; set; }
+        public int FirstDirectoryOffset { get; set; }
+        public int StringTableLength { get; set; }
+        public int StringTableOffset { get; set; }
+        public short DirectoryFileNum { get; set; }
+        public short Unknown4 { get; set; }
+        public int Unknown5 { get; set; }
+    public void Read(string rarc_path)
         {
             FileStream fs = new FileStream(rarc_path, FileMode.Open);
             BinaryReader br = new BinaryReader(fs);
             Node_Items = new List<node_items>();
-            //Directory_Items = new List<directory_items>();
+            Directory_Index_Path = new List<directory_index_path>();
 
             //File Header
-            var Magic = CS.Byte2Char(br);
-            var FileSize = CS.Byte2Int(br);
-            CS.Byte2Int(br);
-            var FileDataOffset = CS.Byte2Int(br);
-            var FileDataLength01 = CS.Byte2Int(br);
-            var FileDataLength02 = CS.Byte2Int(br);
-            CS.Byte2Int(br);
-            CS.Byte2Int(br);
+            Magic            = CS.Byte2Char(br);
+            FileSize         = CS.Byte2Int(br);
+            Unknown1         = CS.Byte2Int(br);
+            FileDataOffset   = CS.Byte2Int(br);
+            FileDataLength01 = CS.Byte2Int(br);
+            FileDataLength02 = CS.Byte2Int(br);
+            Unknown2         = CS.Byte2Int(br);
+            Unknown3         = CS.Byte2Int(br);
 
             //Info セクション
-            var NodeNum = CS.Byte2Int(br);
-            var FirstNodeOffset = CS.Byte2Int(br);
-            var TotalDirectoryCount = CS.Byte2Int(br);
-            var FirstDirectoryOffset = CS.Byte2Int(br);
-            var StringTableLength = CS.Byte2Int(br);
-            var StringTableOffset = CS.Byte2Int(br);
-            var DirectoryFileNum = CS.Byte2Short(br);
-            CS.Byte2Short(br);
-            CS.Byte2Int(br);
+            NodeNum              = CS.Byte2Int(br);
+            FirstNodeOffset      = CS.Byte2Int(br);
+            TotalDirectoryCount  = CS.Byte2Int(br);
+            FirstDirectoryOffset = CS.Byte2Int(br);
+            StringTableLength    = CS.Byte2Int(br);
+            StringTableOffset    = CS.Byte2Int(br);
+            DirectoryFileNum     = CS.Byte2Short(br);
+            Unknown4             = CS.Byte2Short(br);
+            Unknown5             = CS.Byte2Int(br);
 
+            long pos_FileDataTop = FileDataOffset + 0x20;
+            long pos_FileDataEnd = pos_FileDataTop + FileDataLength01;
             Console.WriteLine("//////////infoend//////////");
 
             //Node
@@ -108,8 +148,8 @@ namespace ARCTool.FileSys
             var RootName = @"" + RootDirectoryName + "\\" + @""+ARCFileName.ToString();
             //Console.WriteLine("rootname"+RootName);
 
+            //作業フォルダの作成
             DirectoryInfo di = new DirectoryInfo(RootName);
-            
             di.Create();
             var RootFolder = "";
             var FileEntryEnd = (Node_Items.Sum(x => x.ThisFolderDirectoryCount)*0x14)  + fs.Position;
@@ -127,15 +167,17 @@ namespace ARCTool.FileSys
             Console.WriteLine("stringtopoffset"+ Node_Items[0].StringTopOffset);
             RootFolder = CS.Bytes2String_NullEnd(fs, br, FileEntryEnd + (long)Node_Items[0].StringTopOffset);
 
-            //Console.WriteLine(RootFolder);
+            //ルートフォルダを作成
+            //Console.WriteLine("hash num         " + CS.ARC_Hash(RootFolder).ToString("X")) ;
             DirectoryInfo diSub = di.CreateSubdirectory(RootFolder);
+            Directory_Index_Path.Add(new directory_index_path(0,RootFolder));
 
             Console.WriteLine("");
-            
+            List<List<directory_items>> diitemsList = new List<List<directory_items>>();  
             foreach (var node_item in Node_Items.Select((Value, Index) => new { Value, Index })) {
                 var nodeitemcounter = 0;
-                Directory_Items = new List<directory_items>();
 
+                Directory_Items = new List<directory_items>();
                 for (var count = 0; count < node_item.Value.ThisFolderDirectoryCount; count++) {
                     var FileID = CS.Byte2Short(br);
                     var FileHash = CS.Byte2UShort(br);
@@ -148,31 +190,123 @@ namespace ARCTool.FileSys
                     Console.WriteLine(Directory_Items[nodeitemcounter].FileID.ToString("X4"));
                     Console.WriteLine(Directory_Items[nodeitemcounter].File_or_Folder.ToString("X4"));
                     Console.WriteLine(Directory_Items[nodeitemcounter].FileOffset_or_DirectoryIndex.ToString("X8"));
-                    var a = Directory_Items[nodeitemcounter].FileNameOffset + FileEntryEnd;
-                    var b = CS.Bytes2String_NullEnd(fs,br,a);
-                    //Console.WriteLine(b);
                     nodeitemcounter++;
                 }
 
                 Directory_Items.Reverse();
-                foreach (var item in Directory_Items.Select((Value, Index) => new { Value, Index })) {
-                    var a = Directory_Items[nodeitemcounter].FileNameOffset + FileEntryEnd;
-                    var b = CS.Bytes2String_NullEnd(fs, br, a);
-                    switch (b) {
-                        case "..":
-                            break;
-                        case ".":
-                            break;
-                        default:
-                            break;
-                    }
-                }
+
+                diitemsList.Add(Directory_Items);
+                
                 Console.WriteLine("");
                 Console.WriteLine("");
             }
 
             //Directory_Items.Reverse();
-            //Console.WriteLine((Directory_Items[0].FileOffset_or_DirectoryIndex));
+            //DirectoryInfo subdi , sub2di;
+
+            Console.WriteLine("di fullpath");
+            Console.WriteLine(di.FullName);
+            //List<int> aaa = new 
+            DirIndexAndPath = new List<directoryindex_and_pathname>();
+            foreach (var testitem in diitemsList.Select((Value, Index) => new { Value, Index })) {
+                //if (testitem.Index == 0) {
+                //    //RootFolderにフォルダやファイルを生成する
+                //    DirectoryInfo sub2di = diSub.CreateSubdirectory();
+                //    continue;
+                //}
+                var RootFolderFullpath = di.FullName;
+                foreach (var subitem in testitem.Value) {
+                    var test = subitem.FileNameOffset + FileEntryEnd;
+                    var itemname = CS.Bytes2String_NullEnd(fs, br, test);
+                    switch (itemname) {
+                        case "..":
+                            if (subitem.FileOffset_or_DirectoryIndex == -1){
+                                Console.WriteLine("parent_none");
+                            }
+                            else {
+                                //var z = diitemsList.Find(findList => findList.Find(finditem => finditem.FileOffset_or_DirectoryIndex.Equals(subitem.FileID)).FileID.Equals(subitem.FileID));
+                                var dipfinder = Directory_Index_Path.FirstOrDefault(x => x.Index == subitem.FileOffset_or_DirectoryIndex);
+                                Console.WriteLine(subitem.FileOffset_or_DirectoryIndex.ToString("X"));
+                                //Console.WriteLine((z[testitem.Index].FileNameOffset+FileEntryEnd).ToString("X"));
+                                var testes = Node_Items[subitem.FileOffset_or_DirectoryIndex].StringTopOffset;
+                                Console.WriteLine("parent "+CS.Bytes2String_NullEnd(fs, br, testes+FileEntryEnd));
+
+                                if (dipfinder.Index == default || dipfinder.Index == 0) {
+                                    Console.WriteLine(RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd)));
+                                }
+                                else {
+                                    Console.WriteLine(RootFolderFullpath = (@"" + dipfinder.Path));
+                                }
+                                
+                                //subdi = di.CreateSubdirectory(CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                            }
+                            break;
+                        case ".":
+                            if (subitem.FileOffset_or_DirectoryIndex == -1)
+                            {
+                                Console.WriteLine("Now_Directory");
+                            }
+                            else
+                            {
+                                Console.WriteLine(subitem.FileID.ToString("X"));
+                                //var z = diitemsList.Find(findList => findList.Find(finditem => finditem.FileOffset_or_DirectoryIndex.Equals(subitem.FileID)).FileID.Equals(subitem.FileID));
+
+                                //Console.WriteLine((z[testitem.Index].FileNameOffset+FileEntryEnd).ToString("X"));
+                                var testes = Node_Items[subitem.FileOffset_or_DirectoryIndex].StringTopOffset;
+                                Console.WriteLine("Now_Directory " + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                                Console.WriteLine( RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd)));
+                            }
+                            break;
+                        default:
+                            if (subitem.FileOffset_or_DirectoryIndex == -1)
+                            {
+                                Console.WriteLine("folder or file");
+                            }
+                            else
+                            {
+                                var filefoldername = CS.Bytes2String_NullEnd(fs, br, subitem.FileNameOffset + FileEntryEnd);
+                                var testes3 = subitem.FileSize_or_Directory10;
+                                Console.WriteLine(subitem.FileID.ToString("X"));
+                                var testes2 = subitem.FileOffset_or_DirectoryIndex;
+
+                                var testes = subitem.File_or_Folder;
+                                var type = "File " + testes2.ToString("X");
+                                if (testes == 0x0200) {
+                                    type = "SubDirectory↓ " + testes2.ToString("X") + "_" + testes3.ToString("X");
+                                    var thisdir = new directory_index_path(testes2, RootFolderFullpath + @"\" + filefoldername);
+                                    var finddirectory = Directory_Index_Path.IndexOf(thisdir);
+                                    if (finddirectory == -1) {
+                                        Directory_Index_Path.Add(thisdir);
+                                        //Console.WriteLine("作成↓");
+                                        //Console.WriteLine(thisdir.Path);
+                                        Directory.CreateDirectory(thisdir.Path);
+                                    }
+
+                                } else if (testes == 0x1100) {
+                                    var FileCreatePath = RootFolderFullpath + @"\" + filefoldername;
+                                    var pos_old_fs = fs.Position;
+                                    fs.Seek(pos_FileDataTop + subitem.FileOffset_or_DirectoryIndex, SeekOrigin.Begin);
+                                    byte[] FileData = br.ReadBytes(subitem.FileSize_or_Directory10);
+                                    File.WriteAllBytes(FileCreatePath,FileData);
+                                    fs.Seek(pos_old_fs,SeekOrigin.Begin);
+                                    Console.WriteLine("fileNo."+subitem.FileID.ToString("X"));
+                                } else { 
+                                
+                                }
+                                Console.WriteLine(type);
+
+                                //var z = diitemsList.Find(findList => findList.Find(finditem => finditem.FileOffset_or_DirectoryIndex.Equals(subitem.FileID)).FileID.Equals(subitem.FileID));
+
+                                //Console.WriteLine((z[testitem.Index].FileNameOffset+FileEntryEnd).ToString("X"));
+                                //var testes = Node_Items[subitem.FileOffset_or_DirectoryIndex].StringTopOffset;
+                                Console.WriteLine("folder or file " + filefoldername);
+
+                            }
+                            break;
+                    }
+                }
+                Console.WriteLine("\n\r");
+            }
 
             //16byte0
             CS.Byte2Int(br);
@@ -203,8 +337,8 @@ namespace ARCTool.FileSys
             br.Close();
         }
 
-        public static void ParentNode(List<directory_items> Directory_Items , DirectoryInfo di) { 
-            
+        public void Write() {
+        
         }
         
     }

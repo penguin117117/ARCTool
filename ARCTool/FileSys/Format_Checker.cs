@@ -13,6 +13,8 @@ namespace ARCTool.FileSys
         public static void Type_Check(string rarc_path) { 
             FileStream fs = new FileStream(rarc_path, FileMode.Open);
             BinaryReader br = new BinaryReader(fs);
+            RARC rarc = new RARC();
+
             var Magic = CS.Byte2Char(br);
 
             if (Magic == "RARC")
@@ -20,16 +22,16 @@ namespace ARCTool.FileSys
                 Console.WriteLine("RARCです");
                 fs.Close();
                 br.Close();
-                RARC.Read(rarc_path);
+                rarc.Read(rarc_path);
             }
             else if (Magic == "Yaz0")
             {
-                Console.WriteLine("Yaz0です");
+                Console.WriteLine("Yaz0が含まれたRARCはまだ未対応です");
                 fs.Close();
                 br.Close();
             }
             else {
-                Console.WriteLine("未対応です");
+                Console.WriteLine("未対応のファイルです");
                 fs.Close();
                 br.Close();
             }
