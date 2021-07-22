@@ -117,7 +117,7 @@ namespace ARCTool.FileSys
 
             long pos_FileDataTop = FileDataOffset + 0x20;
             long pos_FileDataEnd = pos_FileDataTop + FileDataLength01;
-            Console.WriteLine("//////////infoend//////////");
+            Console.WriteLine("//////////Infoセクション終了//////////");
 
             //Node
             for(int i = 0; i<NodeNum; i++)
@@ -351,14 +351,96 @@ namespace ARCTool.FileSys
             var FileEntryOffset = 0x20 + (dirstrs.Count() * 0x10) + 0x10;
             var IntHexString20 = CS.StringToBytes((0x00000020).ToString("X8"));
 
-            bw.Write(RARC);
+            short dirindirOne = 0x0000;
+            short AllFileCount =(short)filestrs.Count();
+            if (dirstrs.Count() == 1) {
+                dirindirOne = 0x0100;
+                AllFileCount = (short)(filestrs.Count() + dirstrs.Count() + 1);
+            }
+
+            //RARC Header
+            CS.String_Writer(bw,"RARC");
             CS.Null_Writer_Int32(bw);
-            bw.Write(IntHexString20);
+            CS.String_Writer_Int(bw,0x00000020);
             CS.Null_Writer_Int32(bw,5);
-            bw.Write(CS.StringToBytes((dirstrs.Count()).ToString("X8")));
-            bw.Write(IntHexString20);
-            bw.Write(CS.StringToBytes((Sum_IDIC).ToString("X8")));
-            bw.Write(CS.StringToBytes((FileEntryOffset).ToString("X8")));
+            CS.String_Writer_Int(bw,dirstrs.Count());
+            CS.String_Writer_Int(bw, 0x00000020);
+            CS.String_Writer_Int(bw,Sum_IDIC);
+            CS.String_Writer_Int(bw,FileEntryOffset);
+            var pos_StringTable = fs.Position;
+            CS.Null_Writer_Int32(bw,2);
+            CS.String_Writer_Int(bw,AllFileCount);
+            CS.String_Writer_Int(bw,dirindirOne);
+            CS.Null_Writer_Int32(bw);
+
+
+            var dirandfilearray = dirstrs.Concat(filestrs).ToArray();
+            var sortedDirFileArray = dirandfilearray.OrderBy(sort=>sort);
+            var a= sortedDirFileArray.Select(g => g +(char)0);
+            var b = a.ToArray();
+            List<int> nameoffset = new List<int>();
+            List<string> nameffsetstr = new List<string>();
+
+            Console.WriteLine("//tes//");
+            MemoryStream ms = new MemoryStream();
+            BinaryWriter bw2 = new BinaryWriter(ms);
+            CS.String_Writer(bw2, "." + (char)0);
+            CS.String_Writer(bw2,".."+(char)0);
+            foreach (var tes in b) {
+                var testes = Path.GetFileName(tes);
+                nameoffset.Add((int)ms.Position);
+                nameffsetstr.Add(testes);
+                CS.String_Writer(bw2,testes);
+                Console.WriteLine(testes+"testes");
+            }
+
+            
+
+            Console.WriteLine("//tesend//");
+
+            //Node Section
+            var indexcount = 0;
+            var nodeitemcounter = 0;
+            for (var i = 0; i < dirstrs.Count(); i++) {
+                var dirName = Path.GetFileName(dirstrs[i]);
+                var olddirName = dirName;
+                if (i==0) {
+                    CS.String_Writer(bw,"ROOT");
+                    
+                }
+                else {
+                    
+
+                    var shortageCount = 4 - dirName.Count();
+
+                    if (shortageCount > -1) {
+                        for(var j = 0; j<shortageCount; j++)
+                        dirName += (char)0x20;
+                    } 
+                    var dirShortName = dirName.Substring(0,4);
+                    CS.String_Writer(bw,dirShortName.ToUpper());
+                }
+                var findnameindex = nameffsetstr.IndexOf(olddirName+(char)0,indexcount);
+                indexcount = findnameindex +1;
+                Console.WriteLine(findnameindex.ToString("X")+"TESTESTES");
+                CS.String_Writer_Int(bw, nameoffset[findnameindex]);
+                CS.String_Writer_Int(bw, (short)CS.ARC_Hash(olddirName));
+                CS.String_Writer_Int(bw,(short)IDIC[i]);
+                
+                CS.String_Writer_Int(bw,nodeitemcounter);
+                nodeitemcounter += IDIC[i];
+            }
+
+            //パディングを挿入した際に0x20で割り切れない場合の計算
+            if (fs.Position % 32f != 0)
+            {
+                bool flag = true;
+                while (flag)
+                {
+                    if (fs.Position % 32f == 0) break;
+                    CS.String_Writer_Int(bw, (byte)0);
+                }
+            }
 
             Console.WriteLine(CS.ARC_Hash(".."));
             Console.WriteLine("RARC_End");

@@ -84,7 +84,30 @@ namespace ARCTool.FileSys
                 bw.Write(BitConverter.GetBytes(0x00000000));
         }
 
-        
+        public static void String_Writer(BinaryWriter bw , string str , string encoding_type = "ASCII") {
+            var bits = Encoding.GetEncoding(encoding_type).GetBytes(str);
+            bw.Write(bits);
+        }
+
+        public static void String_Writer_Int(BinaryWriter bw,int hexnum) {
+            var hexstr = hexnum.ToString("X8");
+            var bytes  = StringToBytes(hexstr);
+            bw.Write(bytes);
+        }
+
+        public static void String_Writer_Int(BinaryWriter bw, Int16 hexnum)
+        {
+            var hexstr = hexnum.ToString("X4");
+            var bytes = StringToBytes(hexstr);
+            bw.Write(bytes);
+        }
+
+        public static void String_Writer_Int(BinaryWriter bw, byte hexnum)
+        {
+            var hexstr = hexnum.ToString("X2");
+            var bytes = StringToBytes(hexstr);
+            bw.Write(bytes);
+        }
 
         public static UInt16 ARC_Hash(string strs) {
             UInt16 hashvalue = 0;
