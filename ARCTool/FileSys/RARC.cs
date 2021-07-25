@@ -337,26 +337,59 @@ namespace ARCTool.FileSys
             br.Close();
         }
 
+
+        /// <summary>
+        /// RARCのファイルエントリーオフセットを計算します。<br/>
+        /// <return>戻り値：ファイルエントリーオフセットの先頭</return>
+        /// </summary>
+        /// <remarks>圧縮専用</remarks>
+        public static int RARC_FEO(string[] DirectoryStrings) {
+            return 0x20 + (DirectoryStrings.Count() * 0x10) + 0x10;
+        }
+
+
+        /// <summary>
+        /// RARCで圧縮する全てのファイルを数えます<br/>
+        /// <return>戻り値：ファイルの総数、またはファイルとフォルダの総数</return>
+        /// </summary>
+        /// <remarks>圧縮専用「条件によってフォルダの数を加算する場合があります」</remarks>
+        public static short RARC_AFC(string[] FileStrings, string[] DirectoryStrings , out short dirindirOne)
+        {
+            dirindirOne = 0x0000;
+            short FSC = (short)FileStrings.Count();
+            short DSC = (short)DirectoryStrings.Count();
+            short AllFileCount = FSC;
+
+            if (DirectoryStrings.Count() == 1)
+            {
+                dirindirOne = 0x0100;
+                AllFileCount = (short)(FSC + DSC + 1);
+            }
+            return AllFileCount;
+        }
+
         public void Write(string rarc_path , string[] dirstrs ,string[] filestrs) {
             FileStream fs = new FileStream(rarc_path, FileMode.Create);
             BinaryWriter bw = new BinaryWriter(fs);
-
+            Directory_Items = new List<directory_items>();
+            Console.WriteLine(rarc_path+"_________________rarc_path");
             long pos_File_Size = 0x8;
             long pos_FileDataSection = 0xC;
             long pos_FileDataSectionLength = 0x10;
 
-            var RARC = Encoding.ASCII.GetBytes("RARC");
+            //var RARC = Encoding.ASCII.GetBytes("RARC");
             var IDIC = In_DirectoryItemCount(dirstrs);
             var Sum_IDIC = IDIC.Sum();
-            var FileEntryOffset = 0x20 + (dirstrs.Count() * 0x10) + 0x10;
-            var IntHexString20 = CS.StringToBytes((0x00000020).ToString("X8"));
+            var FileEntryOffset = RARC_FEO(dirstrs)/*0x20 + (dirstrs.Count() * 0x10) + 0x10*/;
+            //var IntHexString20 = CS.StringToBytes((0x00000020).ToString("X8"));
 
             short dirindirOne = 0x0000;
-            short AllFileCount =(short)filestrs.Count();
-            if (dirstrs.Count() == 1) {
-                dirindirOne = 0x0100;
-                AllFileCount = (short)(filestrs.Count() + dirstrs.Count() + 1);
-            }
+            short AllFileCount = RARC_AFC(filestrs,dirstrs, out dirindirOne);
+            //short AllFileCount =(short)filestrs.Count();
+            //if (dirstrs.Count() == 1) {
+            //    dirindirOne = 0x0100;
+            //    AllFileCount = (short)(filestrs.Count() + dirstrs.Count() + 1);
+            //}
 
             //RARC Header
             CS.String_Writer(bw,"RARC");
@@ -442,6 +475,76 @@ namespace ARCTool.FileSys
                 }
             }
 
+            //FileEntrySection
+            var currentfolder = rarc_path.Substring(0, rarc_path.Count() - 4);
+            Console.WriteLine(currentfolder);
+            string[] dirnode;
+            string[] filenode;
+            foreach (var node in dirstrs.Select((Value, Index) => (Value, Index)))
+            {
+                dirnode = Directory.GetDirectories(node.Value, "*", SearchOption.TopDirectoryOnly);
+                filenode = Directory.GetFiles(node.Value, "*", SearchOption.TopDirectoryOnly);
+                var dirConcatfile = dirnode.Concat(filenode);
+                dirConcatfile = dirConcatfile.OrderBy(sort => sort);
+                var sorted_dirConcatfile = dirConcatfile.ToArray();
+
+                var diraddfile = sorted_dirConcatfile.Count();
+                if (node.Index == 0)
+                {
+                    for (var i = 0; i < diraddfile; i++)
+                    {
+                        if (File.Exists(sorted_dirConcatfile[i]))
+                        {
+
+
+                        }
+                        else if (Directory.Exists(sorted_dirConcatfile[i]))
+                        {
+
+                            CS.String_Writer_Int(bw, (short)-1);
+                            var foldaname = Path.GetFileName(sorted_dirConcatfile[i]);
+
+                            CS.String_Writer_Int(bw,(short)CS.ARC_Hash(foldaname));
+
+                            CS.String_Writer_Int(bw,(short)0x0200);
+                            //var cccccc = nameffsetstr.Select(x => x.Substring(0, x.Length - 1)).ToList();
+                            //var cccc = cccccc.IndexOf(sorted_dirConcatfile[i]);
+                            //Console.WriteLine(nameoffset[cccc]);
+                            CS.String_Writer_Int(bw,(short)nameoffset[i+1]);
+                            //dirstrs.Select(x=>x =="") ;
+                            var listdirfile = dirstrs.ToList();
+                            var dirindex = listdirfile.IndexOf(sorted_dirConcatfile[i]);
+                            Console.WriteLine(dirindex.ToString("X8"));
+                            CS.String_Writer_Int(bw,dirindex);
+                            CS.String_Writer_Int(bw,0x00000010);
+                            CS.String_Writer_Int(bw,0x00000000);
+
+                        }
+
+                        Console.WriteLine(sorted_dirConcatfile[i] + "_______________________________");
+                    }
+                    CS.String_Writer_Int(bw, (short)-1);
+                    CS.String_Writer_Int(bw, (short)CS.ARC_Hash("."));
+                    CS.String_Writer_Int(bw, (short)0x0200);
+                    CS.String_Writer_Int(bw, (short)0x0000);
+                    CS.String_Writer_Int(bw, 0x00000000);
+                    CS.String_Writer_Int(bw, 0x00000010);
+                    CS.String_Writer_Int(bw, 0x00000000);
+
+                    CS.String_Writer_Int(bw, (short)-1);
+                    CS.String_Writer_Int(bw, (short)CS.ARC_Hash(".."));
+                    CS.String_Writer_Int(bw, (short)0x0200);
+                    CS.String_Writer_Int(bw, (short)0x0002);
+                    CS.String_Writer_Int(bw, -1);
+                    CS.String_Writer_Int(bw, 0x00000010);
+                    CS.String_Writer_Int(bw, 0x00000000);
+
+                } else if (node.Index == 1) {
+                    
+                }
+
+            }
+
             Console.WriteLine(CS.ARC_Hash(".."));
             Console.WriteLine("RARC_End");
 
@@ -450,6 +553,12 @@ namespace ARCTool.FileSys
             bw.Close();
         }
 
+
+        /// <summary>
+        /// RARCのフォルダの数を計算します。<br/>
+        /// <return>戻り値：フォルダの個数</return>
+        /// </summary>
+        /// <remarks>圧縮専用</remarks>
         public static List<int> In_DirectoryItemCount(string[] DirStrs) {
             List<int> item = new List<int>();
             foreach (var diritem in DirStrs)
