@@ -175,6 +175,8 @@ namespace ARCTool.FileSys
             Console.WriteLine("");
             List<List<directory_items>> diitemsList = new List<List<directory_items>>();  
             foreach (var node_item in Node_Items.Select((Value, Index) => new { Value, Index })) {
+                
+
                 var nodeitemcounter = 0;
 
                 Directory_Items = new List<directory_items>();
@@ -187,9 +189,14 @@ namespace ARCTool.FileSys
                     var FileSize_or_Directory10 = CS.Byte2Int(br);
                     var Padding = CS.Byte2Int(br);
                     Directory_Items.Add(new directory_items(FileID,FileHash,File_or_Folder,FileNameOffset,FileOffset_or_DirectoryIndex,FileSize_or_Directory10,Padding));
+                    Console.WriteLine("//////////node");
                     Console.WriteLine(Directory_Items[nodeitemcounter].FileID.ToString("X4"));
+                    Console.WriteLine(Directory_Items[nodeitemcounter].FileHash.ToString("X4"));
                     Console.WriteLine(Directory_Items[nodeitemcounter].File_or_Folder.ToString("X4"));
                     Console.WriteLine(Directory_Items[nodeitemcounter].FileOffset_or_DirectoryIndex.ToString("X8"));
+                    Console.WriteLine(Directory_Items[nodeitemcounter].FileSize_or_Directory10.ToString("X8"));
+                    Console.WriteLine(Directory_Items[nodeitemcounter].Padding.ToString("X8"));
+                    Console.WriteLine("node_ende//////////");
                     nodeitemcounter++;
                 }
 
@@ -197,8 +204,8 @@ namespace ARCTool.FileSys
 
                 diitemsList.Add(Directory_Items);
                 
-                Console.WriteLine("");
-                Console.WriteLine("");
+                
+                
             }
 
             //Directory_Items.Reverse();
@@ -266,7 +273,7 @@ namespace ARCTool.FileSys
                             {
                                 var filefoldername = CS.Bytes2String_NullEnd(fs, br, subitem.FileNameOffset + FileEntryEnd);
                                 var testes3 = subitem.FileSize_or_Directory10;
-                                Console.WriteLine(subitem.FileID.ToString("X"));
+                                Console.WriteLine(subitem.FileID.ToString("X") + "fileid");
                                 var testes2 = subitem.FileOffset_or_DirectoryIndex;
 
                                 var testes = subitem.File_or_Folder;
@@ -368,28 +375,36 @@ namespace ARCTool.FileSys
             return AllFileCount;
         }
 
+        public static IOrderedEnumerable<string> Sum_StrinArray_Sort(string[] dirstrs, string[] filestrs) {
+            var dirandfilearray = dirstrs.Concat(filestrs).ToArray();
+            var SortedDirFileArray = dirandfilearray.OrderBy(sort => sort);
+            return SortedDirFileArray;
+        } 
+
+        public static string[]  File_And_Dir_Null_Appender(IOrderedEnumerable<string> SortedDirFileArray)
+        {
+            //var dirandfilearray = dirstrs.Concat(filestrs).ToArray();
+            //var SortedDirFileArray = dirandfilearray.OrderBy(sort => sort);
+            var SDFA = SortedDirFileArray.Select(s => s + (char)0);
+            var SDFAA = SDFA.ToArray();
+            return SDFAA;
+        }
+
         public void Write(string rarc_path , string[] dirstrs ,string[] filestrs) {
             FileStream fs = new FileStream(rarc_path, FileMode.Create);
             BinaryWriter bw = new BinaryWriter(fs);
             Directory_Items = new List<directory_items>();
-            Console.WriteLine(rarc_path+"_________________rarc_path");
-            long pos_File_Size = 0x8;
+
+            long pos_File_Size = 0x4;
             long pos_FileDataSection = 0xC;
             long pos_FileDataSectionLength = 0x10;
 
-            //var RARC = Encoding.ASCII.GetBytes("RARC");
             var IDIC = In_DirectoryItemCount(dirstrs);
             var Sum_IDIC = IDIC.Sum();
-            var FileEntryOffset = RARC_FEO(dirstrs)/*0x20 + (dirstrs.Count() * 0x10) + 0x10*/;
-            //var IntHexString20 = CS.StringToBytes((0x00000020).ToString("X8"));
+            var FileEntryOffset = RARC_FEO(dirstrs);
 
             short dirindirOne = 0x0000;
             short AllFileCount = RARC_AFC(filestrs,dirstrs, out dirindirOne);
-            //short AllFileCount =(short)filestrs.Count();
-            //if (dirstrs.Count() == 1) {
-            //    dirindirOne = 0x0100;
-            //    AllFileCount = (short)(filestrs.Count() + dirstrs.Count() + 1);
-            //}
 
             //RARC Header
             CS.String_Writer(bw,"RARC");
@@ -407,79 +422,56 @@ namespace ARCTool.FileSys
             CS.Null_Writer_Int32(bw);
 
 
-            var dirandfilearray = dirstrs.Concat(filestrs).ToArray();
-            var sortedDirFileArray = dirandfilearray.OrderBy(sort=>sort);
-            var a= sortedDirFileArray.Select(g => g +(char)0);
-            var b = a.ToArray();
-            List<int> nameoffset = new List<int>();
-            List<string> nameffsetstr = new List<string>();
+            var SortedDirFileArray = Sum_StrinArray_Sort(dirstrs, filestrs);
+            var SDFA = SortedDirFileArray.ToArray();
+            var SDFAA = File_And_Dir_Null_Appender(SortedDirFileArray);
 
-            Console.WriteLine("//tes//");
+            Console.WriteLine("SDFAA_Start");
+            foreach (var tesitem in SDFAA) Console.WriteLine(tesitem);
+            Console.WriteLine("SDFAA_END");
+
             MemoryStream ms = new MemoryStream();
             BinaryWriter bw2 = new BinaryWriter(ms);
-            CS.String_Writer(bw2, "." + (char)0);
-            CS.String_Writer(bw2,".."+(char)0);
-            foreach (var tes in b) {
-                var testes = Path.GetFileName(tes);
-                nameoffset.Add((int)ms.Position);
-                nameffsetstr.Add(testes);
-                CS.String_Writer(bw2,testes);
-                Console.WriteLine(testes+"testes");
-            }
+            
+
+            RARC_StringName.MemoryWrite(ms,bw2,SDFAA);
+            var nameoffset = RARC_StringName.NameOffset;
+            var nameoffsetstr = RARC_StringName.NameOffsetStr;
+
+            Console.WriteLine("nameoffsetstr_Start");
+            //foreach (var tesitem in nameoffsetstr) Console.WriteLine(tesitem);
+            Console.WriteLine("nameoffsetstr_END");
+
+            //Node Section
+            RARC_NodeSection RARCNS = new RARC_NodeSection();
+            RARCNS.nameoffset = nameoffset;
+            RARCNS.nameoffsetstr = nameoffsetstr;
+            RARCNS.dirstrs = dirstrs;
+            RARCNS.IDIC = IDIC;
+            RARCNS.bw = bw;
+            var FileEntrySectionItemNum = RARCNS.Write();
+            PaddingWriter(fs, bw);
+
+            var pos_nulldataold = fs.Position;
+            for(var i=0;i<FileEntrySectionItemNum;i++) NullDataWriter(bw);
+            PaddingWriter(fs,bw);
+
+            var pos_StringDataTop = fs.Position;
+            bw.Write(ms.ToArray());
+            PaddingWriter(fs,bw);
+            var pos_FileDataTop = fs.Position;
 
             
 
-            Console.WriteLine("//tesend//");
-
-            //Node Section
-            var indexcount = 0;
-            var nodeitemcounter = 0;
-            for (var i = 0; i < dirstrs.Count(); i++) {
-                var dirName = Path.GetFileName(dirstrs[i]);
-                var olddirName = dirName;
-                if (i==0) {
-                    CS.String_Writer(bw,"ROOT");
-                    
-                }
-                else {
-                    
-
-                    var shortageCount = 4 - dirName.Count();
-
-                    if (shortageCount > -1) {
-                        for(var j = 0; j<shortageCount; j++)
-                        dirName += (char)0x20;
-                    } 
-                    var dirShortName = dirName.Substring(0,4);
-                    CS.String_Writer(bw,dirShortName.ToUpper());
-                }
-                var findnameindex = nameffsetstr.IndexOf(olddirName+(char)0,indexcount);
-                indexcount = findnameindex +1;
-                Console.WriteLine(findnameindex.ToString("X")+"TESTESTES");
-                CS.String_Writer_Int(bw, nameoffset[findnameindex]);
-                CS.String_Writer_Int(bw, (short)CS.ARC_Hash(olddirName));
-                CS.String_Writer_Int(bw,(short)IDIC[i]);
-                
-                CS.String_Writer_Int(bw,nodeitemcounter);
-                nodeitemcounter += IDIC[i];
-            }
-
-            //パディングを挿入した際に0x20で割り切れない場合の計算
-            if (fs.Position % 32f != 0)
-            {
-                bool flag = true;
-                while (flag)
-                {
-                    if (fs.Position % 32f == 0) break;
-                    CS.String_Writer_Int(bw, (byte)0);
-                }
-            }
+            fs.Seek(pos_nulldataold,SeekOrigin.Begin);
+            
 
             //FileEntrySection
             var currentfolder = rarc_path.Substring(0, rarc_path.Count() - 4);
-            Console.WriteLine(currentfolder);
+            //Console.WriteLine(currentfolder);
             string[] dirnode;
             string[] filenode;
+            var filesizetotal = 0;
             foreach (var node in dirstrs.Select((Value, Index) => (Value, Index)))
             {
                 dirnode = Directory.GetDirectories(node.Value, "*", SearchOption.TopDirectoryOnly);
@@ -489,63 +481,100 @@ namespace ARCTool.FileSys
                 var sorted_dirConcatfile = dirConcatfile.ToArray();
 
                 var diraddfile = sorted_dirConcatfile.Count();
-                if (node.Index == 0)
+
+
+                for (var i = 0; i < diraddfile; i++)
                 {
-                    for (var i = 0; i < diraddfile; i++)
+                    if (File.Exists(sorted_dirConcatfile[i]))
                     {
-                        if (File.Exists(sorted_dirConcatfile[i]))
+                        var listdirfile = filestrs.ToList();
+                        var fileindex = listdirfile.IndexOf(sorted_dirConcatfile[i]);
+                        var filename = Path.GetFileName(sorted_dirConcatfile[i]);
+                        FileInfo fileinfo = new FileInfo(sorted_dirConcatfile[i]);
+                        var filesize = Convert.ToInt32(fileinfo.Length);
+
+                        var sdcfList = SDFA.ToList();
+                        var sdcfListIndex = sdcfList.IndexOf(sorted_dirConcatfile[i]);
+                        Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
+                        CS.String_Writer_Int(bw, (short)fileindex);
+                        CS.String_Writer_Int(bw, (short)CS.ARC_Hash(filename));
+                        CS.String_Writer_Int(bw, (short)0x1100);
+                        Console.WriteLine(nameoffset[sdcfListIndex].ToString("X"));
+                        CS.String_Writer_Int(bw, (short)nameoffset[sdcfListIndex]);
+                        CS.String_Writer_Int(bw, filesizetotal);
+                        CS.String_Writer_Int(bw, filesize);
+                        CS.String_Writer_Int(bw, 0x00000000);
+
+                        //fileWriter
+                        var pos_before_filedata_write = fs.Position;
+                        fs.Seek(pos_FileDataTop + filesizetotal, SeekOrigin.Begin);
+                        bw.Write(File.ReadAllBytes(sorted_dirConcatfile[i]));
+                        fs.Seek(pos_before_filedata_write, SeekOrigin.Begin);
+
+
+                        filesizetotal += filesize;
+                        if (filesizetotal % 32f != 0)
                         {
-
-
+                            bool flag = true;
+                            while (flag)
+                            {
+                                if (filesizetotal % 32f == 0) break;
+                                filesizetotal++;
+                            }
                         }
-                        else if (Directory.Exists(sorted_dirConcatfile[i]))
-                        {
-
-                            CS.String_Writer_Int(bw, (short)-1);
-                            var foldaname = Path.GetFileName(sorted_dirConcatfile[i]);
-
-                            CS.String_Writer_Int(bw,(short)CS.ARC_Hash(foldaname));
-
-                            CS.String_Writer_Int(bw,(short)0x0200);
-                            //var cccccc = nameffsetstr.Select(x => x.Substring(0, x.Length - 1)).ToList();
-                            //var cccc = cccccc.IndexOf(sorted_dirConcatfile[i]);
-                            //Console.WriteLine(nameoffset[cccc]);
-                            CS.String_Writer_Int(bw,(short)nameoffset[i+1]);
-                            //dirstrs.Select(x=>x =="") ;
-                            var listdirfile = dirstrs.ToList();
-                            var dirindex = listdirfile.IndexOf(sorted_dirConcatfile[i]);
-                            Console.WriteLine(dirindex.ToString("X8"));
-                            CS.String_Writer_Int(bw,dirindex);
-                            CS.String_Writer_Int(bw,0x00000010);
-                            CS.String_Writer_Int(bw,0x00000000);
-
-                        }
-
-                        Console.WriteLine(sorted_dirConcatfile[i] + "_______________________________");
                     }
-                    CS.String_Writer_Int(bw, (short)-1);
-                    CS.String_Writer_Int(bw, (short)CS.ARC_Hash("."));
-                    CS.String_Writer_Int(bw, (short)0x0200);
-                    CS.String_Writer_Int(bw, (short)0x0000);
-                    CS.String_Writer_Int(bw, 0x00000000);
-                    CS.String_Writer_Int(bw, 0x00000010);
-                    CS.String_Writer_Int(bw, 0x00000000);
+                    else if (Directory.Exists(sorted_dirConcatfile[i]))
+                    {
 
-                    CS.String_Writer_Int(bw, (short)-1);
-                    CS.String_Writer_Int(bw, (short)CS.ARC_Hash(".."));
-                    CS.String_Writer_Int(bw, (short)0x0200);
-                    CS.String_Writer_Int(bw, (short)0x0002);
-                    CS.String_Writer_Int(bw, -1);
-                    CS.String_Writer_Int(bw, 0x00000010);
-                    CS.String_Writer_Int(bw, 0x00000000);
+                        CS.String_Writer_Int(bw, (short)-1);
+                        var foldaname = Path.GetFileName(sorted_dirConcatfile[i]);
 
-                } else if (node.Index == 1) {
-                    
+                        CS.String_Writer_Int(bw, (short)CS.ARC_Hash(foldaname));
+
+                        CS.String_Writer_Int(bw, (short)0x0200);
+                        var listdirfile = dirstrs.ToList();
+                        var dirindex = listdirfile.IndexOf(sorted_dirConcatfile[i]);
+
+                        var sdcfList = SDFA.ToList();
+                        var sdcfListIndex = sdcfList.IndexOf(sorted_dirConcatfile[i]);
+                        Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
+                        Console.WriteLine(nameoffset[sdcfListIndex].ToString("X"));
+                        CS.String_Writer_Int(bw, (short)nameoffset[sdcfListIndex]);
+                        //Console.WriteLine(dirindex.ToString("X8"));
+                        CS.String_Writer_Int(bw, dirindex);
+                        CS.String_Writer_Int(bw, 0x00000010);
+                        CS.String_Writer_Int(bw, 0x00000000);
+                    }
                 }
 
+                RARC_Directory_Structure RARCDS = new RARC_Directory_Structure();
+                RARCDS.bw = bw;
+                RARCDS.dirstrs = dirstrs;
+                RARCDS.node = node.Value;
+                RARCDS.Writer();
+                //}
             }
 
-            Console.WriteLine(CS.ARC_Hash(".."));
+            fs.Seek(fs.Length,SeekOrigin.Begin);
+            PaddingWriter(fs,bw);
+
+            //Console.WriteLine(CS.ARC_Hash(".."));
+
+            //ファイルサイズを書き込む
+            fs.Seek(pos_File_Size,SeekOrigin.Begin);
+            CS.String_Writer_Int(bw, (int)fs.Length);
+
+            //ファイルデータセクションのオフセットとサイズを書き込む
+            fs.Seek(pos_FileDataSection,SeekOrigin.Begin);
+            CS.String_Writer_Int(bw,(int)(pos_FileDataTop-0x20));
+            CS.String_Writer_Int(bw,(int)(fs.Length - pos_FileDataTop));
+            CS.String_Writer_Int(bw, (int)(fs.Length - pos_FileDataTop));
+
+            //文字列テーブルのセクションサイズとオフセット
+            fs.Seek(pos_StringTable,SeekOrigin.Begin);
+            CS.String_Writer_Int(bw,(int)(pos_FileDataTop-pos_StringDataTop));
+            CS.String_Writer_Int(bw,(int)(pos_StringDataTop-0x20));
+
             Console.WriteLine("RARC_End");
 
             //fs,bw終了処理
@@ -566,11 +595,33 @@ namespace ARCTool.FileSys
                 var dirindir = Directory.GetDirectories(diritem, "*", SearchOption.TopDirectoryOnly);
                 var dirinfile = Directory.GetFiles(diritem, "*", SearchOption.TopDirectoryOnly);
                 var dirinitemCount = dirindir.Count() + dirinfile.Count() + 2;
-                Console.WriteLine(dirinitemCount);
+                //Console.WriteLine(dirinitemCount);
                 item.Add(dirinitemCount);
             }
             return item;
         }
-        
+
+        /// <summary>
+        /// 0x20で割り切れるまでパディングデータを書き込みます。<br/>
+        /// <return>戻り値：なし</return>
+        /// </summary>
+        /// <remarks>圧縮専用</remarks>
+        public static void PaddingWriter(FileStream fs,BinaryWriter bw) {
+            if (fs.Position % 32f != 0)
+            {
+                bool flag = true;
+                while (flag)
+                {
+                    if (fs.Position % 32f == 0) break;
+                    CS.String_Writer_Int(bw, (byte)0);
+                }
+            }
+        }
+
+        public static void NullDataWriter(BinaryWriter bw , int DirFileTotalNum = 0x14) {
+            byte[] bit = new byte[DirFileTotalNum];
+            for (var i= 0;i<DirFileTotalNum; i++) bit[i] = 0x00;
+            bw.Write(bit);
+        }
     }
 }

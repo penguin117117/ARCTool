@@ -6,11 +6,16 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using ARCTool.FileSys;
+using System.Reflection;
+
+
 
 namespace ARCTool
 {
     class Program
     {
+
+
         private static string[] all_path_strings;
         private static string[] arc_path_strings;
         private static string[] dir_path_strings;
@@ -25,24 +30,22 @@ namespace ARCTool
             if (all_path_strings.Count() == 1){
                 Console.WriteLine("exeファイルをダブルクリックせずに");
                 Console.WriteLine("exeファイルにドラッグアンドドロップしてください。");
-                Environment.Exit(0); 
+                Console.WriteLine("");
+                Console.WriteLine("製作者：ぺんぐいん");
+                Console.WriteLine("Created by penguin117117");
+                Console.WriteLine("https://github.com/penguin117117/ARCTool");
+                Console.WriteLine("バグなどの報告は下記URLへ");
+                Console.WriteLine("https://github.com/penguin117117/ARCTool/issues");
+                Console.WriteLine("終了するには何かキーを押してください");
+                Console.ReadKey();
+                Environment.Exit(0);
+                
             }
 
             //先頭の配列が空白なのでスキップした配列を作成
             IEnumerable<string> aps = all_path_strings.Skip(1);
             all_path_strings = aps.ToArray();
 
-
-            //Console.WriteLine(all_path_strings[0]);
-            //Console.ReadKey();
-
-            //for (int i = 0; i < all_path_strings.Count(); i++)
-            //{
-            //    Console.WriteLine();
-            //    var test2 = Directory.GetFiles(all_path_strings[i], "*", SearchOption.AllDirectories).OrderBy(sort => sort);
-
-            //    foreach (var item in test2) Console.WriteLine(item);
-            //}
             foreach (var path in all_path_strings) {
                 if (File.Exists(path)){
                     Console.WriteLine(path);
@@ -62,12 +65,6 @@ namespace ARCTool
                         Console.WriteLine("圧縮できないフォルダです、ファイルが1つもありません");
                         continue;
                     }
-                    Console.WriteLine(path);
-                    Console.WriteLine("//////////フォルダ確認専用//////////"+"フォルダカウント"+DirStrs.Count().ToString("X"));
-                    foreach (var dirpath in DirStrs) Console.WriteLine(dirpath);
-                    Console.WriteLine("");
-                    Console.WriteLine("//////////ファイル確認専用//////////");
-                    foreach (var filepath in FileStrs) Console.WriteLine(filepath);
                     Console.WriteLine("");
                     Console.WriteLine("//////////以下圧縮処理//////////");
                     RARC rarc = new RARC();
@@ -84,29 +81,6 @@ namespace ARCTool
             }
 
             
-
-            ////folderの場合
-            //IEnumerable<string> dirWhere = all_path_strings.Where(o => Directory.GetDirectories(o).Count() > 0);
-            //dir_path_strings = dirWhere.ToArray();
-            //foreach (var testwritepath in dir_path_strings) Console.WriteLine(Path.GetFileName( testwritepath));
-            ////Console.ReadKey();
-
-            ////.arcの拡張子が付くもののみ新しい配列に入れる。
-            //IEnumerable<string> arcWhere = all_path_strings.Where(o => Path.GetExtension(o) == ".arc");
-            //arc_path_strings = arcWhere.ToArray();
-
-            //if (arc_path_strings.Count() == 0) return;
-            ////.arcファイルのみのパスを出力
-            //foreach (var arcfile in arcWhere)
-            //{
-            //    Console.WriteLine(arcfile);
-            //    Format_Checker.Type_Check(arcfile);
-            //}
-
-            //Folderの場合
-
-            Console.WriteLine("終了するには何かキーを押してください");
-            Console.ReadKey();
 
         }
     }
