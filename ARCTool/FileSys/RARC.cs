@@ -131,33 +131,45 @@ namespace ARCTool.FileSys
                 Console.WriteLine(Identifier);
             }
 
-            //16byte0
-            CS.Byte2Int(br);
-            CS.Byte2Int(br);
-            CS.Byte2Int(br);
-            CS.Byte2Int(br);
+            //パディングを挿入した際に0x10で割り切れない場合の計算
+            if (fs.Position % 32f != 0)
+            {
+                bool flag = true;
+                while (flag)
+                {
+                    if (fs.Position % 32f == 0) break;
+                    fs.Position++;
+                }
+            }
             Console.WriteLine("//////////nodeend//////////");
             //Directory
             
             var RootDirectoryName = Path.GetDirectoryName(rarc_path);
-            //Console.WriteLine("rootdirectoryname"+RootDirectoryName);
+            Console.WriteLine("rootdirectoryname" + RootDirectoryName);
 
             var ARCFileName = Path.GetFileNameWithoutExtension(rarc_path).ToString();
-            //Console.WriteLine("arcfilename"+ARCFileName);
+            Console.WriteLine("arcfilename" + ARCFileName);
 
             var RootName = @"" + RootDirectoryName + "\\" + @""+ARCFileName.ToString();
-            //Console.WriteLine("rootname"+RootName);
+            Console.WriteLine("rootname" + RootName);
 
             //作業フォルダの作成
             DirectoryInfo di = new DirectoryInfo(RootName);
             di.Create();
             var RootFolder = "";
+
+            Console.WriteLine(Node_Items.Sum(x => x.ThisFolderDirectoryCount).ToString("X")+"sumNum");
             var FileEntryEnd = (Node_Items.Sum(x => x.ThisFolderDirectoryCount)*0x14)  + fs.Position;
 
+            Console.WriteLine(FileEntryEnd.ToString("X")+"_ファイルエントリエンド");
+            Console.WriteLine(fs.Position.ToString("X"));
+
             //パディングを挿入した際に0x10で割り切れない場合の計算
-            if (FileEntryEnd % 32f != 0) {
+            if (FileEntryEnd % 32f != 0)
+            {
                 bool flag = true;
-                while (flag) {
+                while (flag)
+                {
                     if (FileEntryEnd % 32f == 0) break;
                     FileEntryEnd++;
                 }
@@ -169,6 +181,7 @@ namespace ARCTool.FileSys
 
             //ルートフォルダを作成
             //Console.WriteLine("hash num         " + CS.ARC_Hash(RootFolder).ToString("X")) ;
+            Console.WriteLine(RootFolder);
             DirectoryInfo diSub = di.CreateSubdirectory(RootFolder);
             Directory_Index_Path.Add(new directory_index_path(0,RootFolder));
 

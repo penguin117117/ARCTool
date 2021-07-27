@@ -16,7 +16,7 @@ namespace ARCTool.FileSys
         private readonly bool[] bit7 = {true,true,true,true,true,true,true};
         public void Decord(string filepath) {
             var savedirectory = filepath.Substring(0,filepath.LastIndexOf(@"\"));
-            var savefilename =  Path.GetFileNameWithoutExtension(filepath) + ".yaz0decrarc";
+            var savefilename =  Path.GetFileNameWithoutExtension(filepath) + ".rarc";
             var savefullpath = Path.Combine(savedirectory,savefilename);
             Console.WriteLine(savefullpath);
 

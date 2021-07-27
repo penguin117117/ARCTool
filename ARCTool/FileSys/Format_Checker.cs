@@ -23,6 +23,7 @@ namespace ARCTool.FileSys
                 Console.WriteLine("RARCです");
                 fs.Close();
                 br.Close();
+                
                 rarc.Read(rarc_path);
             }
             else if (Magic == "Yaz0")
@@ -31,7 +32,20 @@ namespace ARCTool.FileSys
                 fs.Close();
                 br.Close();
                 yaz0.Decord(rarc_path);
-                Console.ReadKey();
+                Console.WriteLine("Yaz0End");
+                var savedirectory = rarc_path.Substring(0, rarc_path.LastIndexOf(@"\"));
+                var savefilename = Path.GetFileNameWithoutExtension(rarc_path) + ".rarc";
+                var Yaz0_Path = Path.Combine(savedirectory, savefilename);
+                if (File.Exists(Yaz0_Path) == false)
+                {
+                    Console.WriteLine("指定されたyaz0decrarcファイルが存在しません。");
+                    Console.WriteLine("アプリケーションを終了します。");
+                    Console.ReadKey();
+                    Environment.Exit(0);
+                }
+                Console.WriteLine("Yaz0_Path" + Yaz0_Path);
+                RARC rarc2 = new RARC();
+                rarc2.Read(Yaz0_Path);
             }
             else {
                 Console.WriteLine("未対応のファイルです");
