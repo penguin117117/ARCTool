@@ -364,7 +364,17 @@ namespace ARCTool.FileSys
         /// </summary>
         /// <remarks>圧縮専用</remarks>
         public static int RARC_FEO(string[] DirectoryStrings) {
-            return 0x20 + (DirectoryStrings.Count() * 0x10) + 0x10;
+            var feo = 0x40 +  (DirectoryStrings.Count() * 0x10);
+            if (feo % 32f != 0)
+            {
+                bool flag = true;
+                while (flag)
+                {
+                    if (feo % 32f == 0) break;
+                    feo++;
+                }
+            }
+            return feo - 0x20;
         }
 
 
