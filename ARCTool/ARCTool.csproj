@@ -19,6 +19,8 @@ Yaz0には、まだ対応していません。</Description>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Prefer32Bit>false</Prefer32Bit>
     <OutputPath>bin\Release\ARCTool_ver0.1.0.0\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
 
 </Project>
