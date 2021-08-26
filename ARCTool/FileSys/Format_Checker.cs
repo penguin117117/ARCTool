@@ -11,27 +11,24 @@ namespace ARCTool.FileSys
     class Format_Checker
     {
         public static void Type_Check(string rarc_path) { 
-            FileStream fs = new FileStream(rarc_path, FileMode.Open);
-            BinaryReader br = new BinaryReader(fs);
-            RARC rarc = new RARC();
-            Yaz0 yaz0 = new Yaz0();
+            FileStream fs = new(rarc_path, FileMode.Open);
+            BinaryReader br = new(fs);
+            RARC RARC = new();
+            Yaz0 Yaz0 = new();
 
             var Magic = CS.Byte2Char(br);
+            fs.Close();
+            br.Close();
 
             if (Magic == "RARC")
             {
                 Console.WriteLine("RARCです");
-                fs.Close();
-                br.Close();
-                
-                rarc.Read(rarc_path);
+                RARC.Extract(rarc_path);
             }
             else if (Magic == "Yaz0")
             {
                 Console.WriteLine("Yaz0が含まれたRARCはまだ未対応です");
-                fs.Close();
-                br.Close();
-                yaz0.Decord(rarc_path);
+                Yaz0.Decord(rarc_path);
                 Console.WriteLine("Yaz0End");
                 var savedirectory = rarc_path.Substring(0, rarc_path.LastIndexOf(@"\"));
                 var savefilename = Path.GetFileNameWithoutExtension(rarc_path) + ".rarc";
@@ -44,17 +41,12 @@ namespace ARCTool.FileSys
                     Environment.Exit(0);
                 }
                 Console.WriteLine("Yaz0_Path" + Yaz0_Path);
-                RARC rarc2 = new RARC();
-                rarc2.Read(Yaz0_Path);
+                RARC.Extract(Yaz0_Path);
             }
             else {
                 Console.WriteLine("未対応のファイルです");
-                fs.Close();
-                br.Close();
             }
 
-            //fs.Close();
-            //br.Close();
         }
     }
 }

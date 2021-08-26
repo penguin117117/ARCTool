@@ -12,15 +12,26 @@
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
     <Description>SMG,SMG2で使用されるarcファイルを解凍、圧縮できます。
-Yaz0には、まだ対応していません。</Description>
-    <AssemblyName>ARCTool_ver0.1.0.0</AssemblyName>
+Yaz0はデコードのみ対応</Description>
+    <AssemblyName>ARCTool_ver0.1.5.0</AssemblyName>
+    <Version>0.1.5.0</Version>
+    <PackageId>ARCTool_ver0.1.5.0</PackageId>
+    <Product>ARCTool_ver0.1.5.0</Product>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <Prefer32Bit>false</Prefer32Bit>
-    <OutputPath>bin\Release\ARCTool_ver0.1.0.0\</OutputPath>
+    <OutputPath>bin\Release\ARCTool_ver0.1.5.0\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Prefer32Bit>false</Prefer32Bit>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
 </Project>
