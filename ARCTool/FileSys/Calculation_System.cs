@@ -102,6 +102,13 @@ namespace ARCTool.FileSys
             bw.Write(bytes);
         }
 
+        public static void String_Writer_Int(BinaryWriter bw, UInt16 hexnum)
+        {
+            var hexstr = hexnum.ToString("X4");
+            var bytes = StringToBytes(hexstr);
+            bw.Write(bytes);
+        }
+
         public static void String_Writer_Int(BinaryWriter bw, byte hexnum)
         {
             var hexstr = hexnum.ToString("X2");
@@ -118,6 +125,28 @@ namespace ARCTool.FileSys
             return hashvalue;
         }
 
-        
+        public static UInt16 ARC_Hash2(string strs , ushort length)
+        {
+            UInt16 hashvalue = 0;
+            foreach (var ch in strs)
+            {
+                hashvalue *=length;
+                hashvalue += ch;
+            }
+            return hashvalue;
+        }
+
+        public static uint MSBT_Hash(string label, int num_slots)
+        {
+            uint hash = 0;
+            foreach (char c in label)
+            {
+                hash *= 0x492;
+                hash += c;
+            }
+            return (hash & 0xFFFFFFFF) % (uint)num_slots;
+        }
+
+
     }
 }
