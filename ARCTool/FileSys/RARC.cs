@@ -8,7 +8,7 @@ using CS = ARCTool.FileSys.Calculation_System;
 
 namespace ARCTool.FileSys
 {
-    class RARC
+    public class RARC
     {
         public struct directory_index_path
         {
@@ -499,9 +499,9 @@ namespace ARCTool.FileSys
             return SDFAA;
         }
 
-        public void Archive(string rarc_path, string[] dirstrs, string[] filestrs)
+        public void Archive(string extractPath, string[] dirstrs, string[] filestrs)
         {
-            FileStream fs = new(rarc_path, FileMode.Create);
+            FileStream fs = new(extractPath, FileMode.Create);
             BinaryWriter bw = new(fs);
             Directory_Items = new List<directory_items>();
 
@@ -579,7 +579,7 @@ namespace ARCTool.FileSys
 
 
             //FileEntrySection
-            var currentfolder = rarc_path.Substring(0, rarc_path.Count() - 4);
+            var currentfolder = extractPath.Substring(0, extractPath.Count() - 4);
             Console.WriteLine(currentfolder);
             string[] dirnode;
             string[] filenode;
