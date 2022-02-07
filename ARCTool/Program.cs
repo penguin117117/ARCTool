@@ -7,6 +7,7 @@ using System.Text;
 using System.IO;
 using ARCTool.FileSys;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 
 
@@ -14,8 +15,6 @@ namespace ARCTool
 {
     class Program
     {
-
-
         private static string[] all_path_strings;
         private static string[] arc_path_strings;
         private static string[] dir_path_strings;
@@ -23,11 +22,9 @@ namespace ARCTool
 
         public static void Main(string[] args)
         {
-            //キー入力後
-
-
             //exeファイルにドラッグ＆ドロップしたファイルパスを配列に入れる。
             all_path_strings = Environment.GetCommandLineArgs();
+
             if (all_path_strings.Count() == 1)
             {
                 Console.WriteLine("exeファイルをダブルクリックせずに");
@@ -56,93 +53,65 @@ namespace ARCTool
             //var yesnoChars = Console.ReadLine().ToCharArray();
             //yesno = yesnoChars[0];
 
-            //yesno = Yaz0.Use_Yaz0_Encode();
+            
+            //Console.WriteLine("全パス2"+all_path_strings.Count());
 
+            var isFirstTime = true;
             foreach (var path in all_path_strings)
             {
+                if (isFirstTime) 
+                {
+                    yesno = Yaz0.Use_Yaz0_Encode();
+                    isFirstTime = false;
+                }
+
+
+                Console.WriteLine("圧縮フォルダパス" + path);
                 if (File.Exists(path))
                 {
                     Format_Checker.Type_Check(path);
                     continue;
                 }
-                if (Directory.Exists(path))
+
+                var PathReplace = path;
+                
+                if (Directory.Exists(PathReplace))
                 {
-                    var DirStrs = DirectoryFileEdit.DirectoryNameSort(path)/*Directory.GetDirectories(path, "*", SearchOption.AllDirectories).OrderBy(sort => sort)*/;
-                    var FileStrs = DirectoryFileEdit.FileNameSort(path);/*Directory.GetFiles(path, "*", SearchOption.AllDirectories).OrderBy(sort => sort)*/;
-                    if (DirStrs.Count() < 1) continue;
-                    if (FileStrs.Count() < 1) continue;
+                    
+
+                    Console.WriteLine("圧縮フォルダパス"+PathReplace);
+                    var DirStrs = DirectoryFileEdit.DirectoryNameSort(PathReplace);
+                    var FileStrs = DirectoryFileEdit.FileNameSort(PathReplace);
+                    if (DirStrs.Length < 1) continue;
+                    if (FileStrs.Length < 1) continue;
 
                     
-                    var arcfile = Path.GetFileName(path);
-                    var arcfolder = Path.GetDirectoryName(path);
+                    var arcfile = Path.GetFileName(PathReplace);
+                    var arcfolder = Path.GetDirectoryName(PathReplace);
 
                     RARC rarc = new();
-                    rarc.Archive(arcfolder + @"\" + arcfile + ".arc", DirStrs, FileStrs);
-                    //if (yesno == 'y')
-                    //{
-                    //    Console.WriteLine("yaz0処理に入りました");
-                    //    Yaz0 yaz0 = new Yaz0();
-                    //    yaz0.Encode(arcfolder + @"\" + arcfile + ".arc");
-                    //    Console.WriteLine("Yaz0圧縮できました");
-                    //    continue;
-                    //}
-                    //Console.WriteLine("Yaz0処理をしていません");
+
+                    var ArcExtractPath = arcfolder + @"\" + arcfile;
+                    if (yesno == 'y')
+                    {
+                        rarc.Archive(ArcExtractPath + ".rarc", DirStrs, FileStrs);
+                        Console.WriteLine("yaz0処理に入りました");
+                        Console.WriteLine("圧縮中・・・");
+                        AppExecuter.Start(arcfolder + @"\" + arcfile + ".rarc");
+                        //Yaz0 yaz0 = new();
+                        //yaz0.Encode2(arcfolder + @"\" + arcfile + ".rarc");
+
+
+
+                        Console.WriteLine("Yaz0圧縮できました");
+                        //Console.ReadKey();
+                        continue;
+                    }
+
+                    rarc.Archive(ArcExtractPath + ".arc", DirStrs, FileStrs);
+                    Console.WriteLine("Yaz0処理をしていません");
                 }
             }
-
-            //foreach (var path in all_path_strings)
-            //{
-            //    if (File.Exists(path))
-            //    {
-            //        Console.WriteLine(path);
-            //        Console.WriteLine("//////////以下解凍処理//////////");
-            //        Format_Checker.Type_Check(path);
-            //    }
-            //    else if (Directory.Exists(path))
-            //    {
-            //        var DirStrs = DirectoryFileEdit.DirectoryNameSort(path)/*Directory.GetDirectories(path, "*", SearchOption.AllDirectories).OrderBy(sort => sort)*/;
-            //        var FileStrs = DirectoryFileEdit.FileNameSort(path);/*Directory.GetFiles(path, "*", SearchOption.AllDirectories).OrderBy(sort => sort)*/;
-            //        if (DirStrs.Count() < 1)
-            //        {
-            //            Console.WriteLine(path);
-            //            Console.WriteLine("圧縮できないフォルダです、サブフォルダが1つもありません");
-            //            continue;
-            //        }
-            //        if (FileStrs.Count() < 1)
-            //        {
-            //            Console.WriteLine(path);
-            //            Console.WriteLine("圧縮できないフォルダです、ファイルが1つもありません");
-            //            continue;
-            //        }
-            //        Console.WriteLine("");
-            //        Console.WriteLine("//////////以下圧縮処理//////////");
-            //        RARC rarc = new RARC();
-            //        var arcfile = Path.GetFileName(path);
-            //        var arcfolder = Path.GetDirectoryName(path);
-            //        Console.WriteLine(arcfolder + @"\" + arcfile + ".arc");
-            //        rarc.Write(arcfolder + @"\" + arcfile + ".arc", DirStrs.ToArray(), FileStrs.ToArray());
-            //        if (yesno == 'y')
-            //        {
-            //            Console.WriteLine("yaz0処理に入りました");
-            //            //Console.ReadKey();
-            //            //Environment.Exit(0);
-            //            Yaz0 yaz0 = new Yaz0();
-            //            yaz0.Encode(arcfolder + @"\" + arcfile + ".arc");
-            //            Console.WriteLine("Yaz0圧縮できました");
-            //        }
-            //        Console.WriteLine("Yaz0処理をしていません");
-
-
-            //    }
-            //    else
-            //    {
-            //        Console.WriteLine(path);
-            //        Console.WriteLine("上記のパスはファイルでも、フォルダでもありません");
-            //    }
-            //}
-
-
-
         }
     }
 }

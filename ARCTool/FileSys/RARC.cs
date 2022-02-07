@@ -8,7 +8,7 @@ using CS = ARCTool.FileSys.Calculation_System;
 
 namespace ARCTool.FileSys
 {
-    class RARC
+    public class RARC
     {
         public struct directory_index_path
         {
@@ -137,7 +137,7 @@ namespace ARCTool.FileSys
                 var ThisFolderDirectoryCount = CS.Byte2Short(br);
                 var FirstDirectoryIndex = CS.Byte2Int(br);
                 Node_Items.Add(new node_items(Identifier, StringTopOffset, StringHash, ThisFolderDirectoryCount, FirstDirectoryIndex));
-                Console.WriteLine((Identifier + "__" + StringTopOffset.ToString("X8") + "__" + StringHash.ToString("X4") + "__" + ThisFolderDirectoryCount.ToString("X4") + "__" + FirstDirectoryIndex.ToString("X8")));
+                //Console.WriteLine((Identifier + "__" + StringTopOffset.ToString("X8") + "__" + StringHash.ToString("X4") + "__" + ThisFolderDirectoryCount.ToString("X4") + "__" + FirstDirectoryIndex.ToString("X8")));
             }
 
             fs.Position = PaddingSkipEndPosition(fs.Position);
@@ -163,7 +163,7 @@ namespace ARCTool.FileSys
             Directory_Index_Path.Add(new directory_index_path(0, RootFolder));
 
             List<List<directory_items>> diitemsList = new List<List<directory_items>>();
-            Console.WriteLine("Node");
+            //Console.WriteLine("Node");
             foreach (var node_item in Node_Items.Select((Value, Index) => new { Value, Index }))
             {
 
@@ -182,12 +182,12 @@ namespace ARCTool.FileSys
                     var Padding = CS.Byte2Int(br);
                     Directory_Items.Add(new directory_items(FileID, FileHash, File_or_Folder, FileNameOffset, FileOffset_or_DirectoryIndex, FileSize_or_Directory10, Padding));
 
-                    Console.Write(Directory_Items[nodeitemcounter].FileID.ToString("X4") + " ");
-                    Console.Write(Directory_Items[nodeitemcounter].FileHash.ToString("X4") + " ");
-                    Console.Write(Directory_Items[nodeitemcounter].File_or_Folder.ToString("X4") + " ");
-                    Console.Write(Directory_Items[nodeitemcounter].FileOffset_or_DirectoryIndex.ToString("X8") + " ");
-                    Console.Write(Directory_Items[nodeitemcounter].FileSize_or_Directory10.ToString("X8") + " ");
-                    Console.WriteLine(Directory_Items[nodeitemcounter].Padding.ToString("X8"));
+                    //Console.Write(Directory_Items[nodeitemcounter].FileID.ToString("X4") + " ");
+                    //Console.Write(Directory_Items[nodeitemcounter].FileHash.ToString("X4") + " ");
+                    //Console.Write(Directory_Items[nodeitemcounter].File_or_Folder.ToString("X4") + " ");
+                    //Console.Write(Directory_Items[nodeitemcounter].FileOffset_or_DirectoryIndex.ToString("X8") + " ");
+                    //Console.Write(Directory_Items[nodeitemcounter].FileSize_or_Directory10.ToString("X8") + " ");
+                    //Console.WriteLine(Directory_Items[nodeitemcounter].Padding.ToString("X8"));
 
                     nodeitemcounter++;
                 }
@@ -215,21 +215,23 @@ namespace ARCTool.FileSys
                         case "..":
                             if (subitem.FileOffset_or_DirectoryIndex == -1)
                             {
-                                Console.WriteLine("parent_none");
+                                //Console.WriteLine("parent_none");
                             }
                             else
                             {
                                 var dipfinder = Directory_Index_Path.FirstOrDefault(x => x.Index == subitem.FileOffset_or_DirectoryIndex);
                                 var testes = Node_Items[subitem.FileOffset_or_DirectoryIndex].StringTopOffset;
-                                Console.WriteLine("parent " + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                                //Console.WriteLine("parent " + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
 
                                 if (dipfinder.Index == default || dipfinder.Index == 0)
                                 {
-                                    Console.WriteLine(RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd)));
+                                    RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                                    //Console.WriteLine();
                                 }
                                 else
                                 {
-                                    Console.WriteLine(RootFolderFullpath = (@"" + dipfinder.Path));
+                                    RootFolderFullpath = (@"" + dipfinder.Path);
+                                    //Console.WriteLine();
                                 }
 
                                 //subdi = di.CreateSubdirectory(CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
@@ -238,29 +240,30 @@ namespace ARCTool.FileSys
                         case ".":
                             if (subitem.FileOffset_or_DirectoryIndex == -1)
                             {
-                                Console.WriteLine("Now_Directory");
+                                //Console.WriteLine("Now_Directory");
                             }
                             else
                             {
-                                Console.WriteLine(subitem.FileID.ToString("X"));
+                                //Console.WriteLine(subitem.FileID.ToString("X"));
                                 //var z = diitemsList.Find(findList => findList.Find(finditem => finditem.FileOffset_or_DirectoryIndex.Equals(subitem.FileID)).FileID.Equals(subitem.FileID));
 
                                 //Console.WriteLine((z[testitem.Index].FileNameOffset+FileEntryEnd).ToString("X"));
                                 var testes = Node_Items[subitem.FileOffset_or_DirectoryIndex].StringTopOffset;
-                                Console.WriteLine("Now_Directory " + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
-                                Console.WriteLine(RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd)));
+                                //Console.WriteLine("Now_Directory " + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                                RootFolderFullpath += (@"\" + CS.Bytes2String_NullEnd(fs, br, testes + FileEntryEnd));
+                                //Console.WriteLine();
                             }
                             break;
                         default:
                             if (subitem.FileOffset_or_DirectoryIndex == -1)
                             {
-                                Console.WriteLine("folder or file");
+                                //Console.WriteLine("folder or file");
                             }
                             else
                             {
                                 var filefoldername = CS.Bytes2String_NullEnd(fs, br, subitem.FileNameOffset + FileEntryEnd);
                                 var testes3 = subitem.FileSize_or_Directory10;
-                                Console.WriteLine(subitem.FileID.ToString("X") + "fileid");
+                                //Console.WriteLine(subitem.FileID.ToString("X") + "fileid");
                                 var testes2 = subitem.FileOffset_or_DirectoryIndex;
 
                                 var testes = subitem.File_or_Folder;
@@ -288,7 +291,7 @@ namespace ARCTool.FileSys
                                     byte[] FileData = br.ReadBytes(subitem.FileSize_or_Directory10);
                                     File.WriteAllBytes(FileCreatePath, FileData);
                                     fs.Seek(pos_old_fs, SeekOrigin.Begin);
-                                    Console.WriteLine("fileNo." + subitem.FileID.ToString("X"));
+                                    //Console.WriteLine("fileNo." + subitem.FileID.ToString("X"));
                                 }
                                 else
                                 {
@@ -499,9 +502,9 @@ namespace ARCTool.FileSys
             return SDFAA;
         }
 
-        public void Archive(string rarc_path, string[] dirstrs, string[] filestrs)
+        public void Archive(string extractPath, string[] dirstrs, string[] filestrs)
         {
-            FileStream fs = new(rarc_path, FileMode.Create);
+            FileStream fs = new(extractPath, FileMode.Create);
             BinaryWriter bw = new(fs);
             Directory_Items = new List<directory_items>();
 
@@ -579,7 +582,7 @@ namespace ARCTool.FileSys
 
 
             //FileEntrySection
-            var currentfolder = rarc_path.Substring(0, rarc_path.Count() - 4);
+            var currentfolder = extractPath.Substring(0, extractPath.Count() - 4);
             Console.WriteLine(currentfolder);
             string[] dirnode;
             string[] filenode;
