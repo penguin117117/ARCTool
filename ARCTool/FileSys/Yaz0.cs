@@ -144,8 +144,8 @@ namespace ARCTool.FileSys
                         //ビットが0の場合の処理
                         var bita = br.ReadByte();
                         var bitb = br.ReadByte();
-                        s_debug.Add(bita.ToString("X2"));
-                        s_debug.Add(bitb.ToString("X2"));
+                        //s_debug.Add(bita.ToString("X2"));
+                        //s_debug.Add(bitb.ToString("X2"));
                         byte a_top4 = (byte)(bita >> 4);
                         byte a_last4 = (byte)(bita << 4);
                         int pos_same_String = (a_last4 << 4 | bitb) + 1;
@@ -157,7 +157,7 @@ namespace ARCTool.FileSys
                             //a_top4のサイズが0xFが最大なのでそれよりも大きい場合の処理
                             byte ByteC = br.ReadByte();
                             writebyteNum = ByteC + 0x12;
-                            s_debug.Add(ByteC.ToString("X2"));
+                            //s_debug.Add(ByteC.ToString("X2"));
                         }
                         else
                         {
@@ -168,23 +168,14 @@ namespace ARCTool.FileSys
                         for (int i = 0; i < writebyteNum; i++)
                         {
                             var sameindex = Yaz0DecDeta.Count - pos_same_String;
-                            //Console.WriteLine("yaz0decdata "+Yaz0DecDeta.Count.ToString("X")+"  sameindex"+sameindex.ToString("X"));
-                            //Console.WriteLine("DATA______" + Yaz0DecDeta[sameindex].ToString("X2"));
                             Yaz0DecDeta.Add(Yaz0DecDeta[sameindex]);
+                            s_debug.Add(Yaz0DecDeta[sameindex].ToString("X2") + " ");
 
                         }
+                        //s_debug.Add("\n");
                     }
                     if (Yaz0DecDeta.Count == OriginalDataSize) break;
                 }
-
-                //if (ms.Length < OriginalDataSize) {
-                //    Console.WriteLine("yazend");    
-                //    break; 
-                //}
-
-                //Console.WriteLine("anykey＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿");
-                //Console.ReadKey();
-                //if (Yaz0DecDeta.Count() < OriginalDataSize) break;
             }
 
             FileStream fs2 = new(savefullpath, FileMode.Create);
@@ -200,8 +191,15 @@ namespace ARCTool.FileSys
             System.Reflection.Assembly myAssembly = System.Reflection.Assembly.GetEntryAssembly();
             string path = myAssembly.Location;
             path = Path.GetDirectoryName(path);
-            foreach(var str in s_debug)
-            File.WriteAllText(path + "\\DebugByte.txt", str);
+            File.WriteAllText(path + "\\DebugByte.txt", string.Empty);
+
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (var str in s_debug)
+            {
+                stringBuilder.Append(str);
+                
+            }
+            File.WriteAllText(path + "\\DebugByte.txt", stringBuilder.ToString());
 
 
         }
@@ -277,6 +275,125 @@ namespace ARCTool.FileSys
             bw.Write(NewBytes, sindex, eindex);
         }
 
+        public void Encode2(string encodeFilePath) 
+        {
+            const byte OffByOne = 1;
+
+            var Yaz0_FullPath            = Path.ChangeExtension(encodeFilePath, ".arc");
+            var Origin_File_ByteArray    = File.ReadAllBytes(encodeFilePath);
+            var Origin_File_Size         = Origin_File_ByteArray.Length;
+            var DictionaryList           = new List<byte>();
+
+            FileStream   fsRARC = new(encodeFilePath, FileMode.Open);
+            BinaryReader brRARC = new(fsRARC);
+            MemoryStream msYaz0 = new();
+            BinaryWriter bwYaz0 = new(msYaz0);
+
+            //ヘッダー情報の書き込み
+            CS.String_Writer(bwYaz0, Magic);
+            CS.String_Writer_Int(bwYaz0, Origin_File_Size);
+            CS.Null_Writer_Int32(bwYaz0, 2);
+
+            Console.WriteLine("header end");
+
+            //チャンクデータの読み込み方法を設定
+            while (fsRARC.Position < Origin_File_Size)
+            {
+                //読み込み方法デフォルト値
+                //注意：通常読み込みの場合のみ更新します。
+                byte NormalRead = 0b_0000_0000;
+
+                //読み込みフラグのダミーデータを入れる
+                var Pos_DummyData = msYaz0.Position;
+                bwYaz0.Write((byte)NormalRead);
+
+                Console.WriteLine("dummy end");
+
+                //チャンクデータを書き込む
+                for (var chunkIndex = 0; chunkIndex < 8; chunkIndex++)
+                {
+                    var Pos_SearchDataTop = fsRARC.Position;
+
+                    //ファイル末尾まで残り3バイト以下の処理
+                    if (Origin_File_Size < fsRARC.Position + Read_3Byte)
+                    {
+                        //符号反転して残りのビットフラグをすべて通常読み込みにする。
+                        byte ReversNormalRead = (byte)~NormalRead;
+                        NormalRead += ReversNormalRead;
+
+                        //ファイル末尾までデータをそのまま読み込む
+                        for (var t = fsRARC.Position; t < Origin_File_Size; t++)
+                        {
+                            bwYaz0.Write(brRARC.ReadByte());
+                        }
+                        Console.WriteLine("End");
+                        break;
+                    }
+
+                    //辞書データのサイズを設定する
+                    ushort Dictionary_DataSize;
+                    if ((fsRARC.Position >= 2) && (fsRARC.Position < 0x12))
+                    {
+                        Dictionary_DataSize = Read_3Byte;
+                    }
+                    else if (fsRARC.Position < Dictionary_MaxRange)
+                    {
+                        Dictionary_DataSize = (ushort)(fsRARC.Position + OffByOne);
+                    }
+                    else 
+                    {
+                        Dictionary_DataSize = Dictionary_MaxRange;
+                    }
+
+                    //検索データを抽出
+                    byte[] ByteArray3 = new byte[Dictionary_DataSize];
+                    for (long i = 0; i < Dictionary_DataSize; i++)
+                    {
+                        ByteArray3[i] = brRARC.ReadByte();
+                    }
+
+                    
+
+                    //初回の処理
+                    if (fsRARC.Position == 0)
+                    {
+                        for (long i = 0; i < 3; i++)
+                        {
+                            DictionaryList.Add(ByteArray3[i]);
+                            bwYaz0.Write(ByteArray3[i]);
+                            NormalRead += IsNormalRead[i];
+                        }
+                        chunkIndex = 2;
+                        continue;
+                    }
+
+                    File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
+                    Console.WriteLine(fsRARC.Position);
+                    Console.ReadKey();
+                    brRARC.Close();
+                    fsRARC.Close();
+                    bwYaz0.Close();
+                    msYaz0.Close();
+                    return;
+
+                    //3Byteを辞書データの末尾から検索する
+                    for (long j = 0; j > -1; j--) { }
+
+                }
+                //チャンクデータを書き込む_END
+
+            }
+            //チャンクデータの読み込み方法を設定_END
+
+            File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
+            Console.WriteLine(fsRARC.Position);
+            Console.ReadKey();
+            brRARC.Close();
+            fsRARC.Close();
+            bwYaz0.Close();
+            msYaz0.Close();
+        }
+
         public void Encode(string encodeFilePath)
         {
             var Yaz0_FullPath = Path.ChangeExtension(encodeFilePath, ".arc");
@@ -299,8 +416,8 @@ namespace ARCTool.FileSys
             CS.Null_Writer_Int32(bwYaz0,2);
 
             //時間を計測する
-            var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
+            //var sw = new System.Diagnostics.Stopwatch();
+            //sw.Start();
 
             //検索したいデータのサイズを決定する。
             for (var ReadingPosition = fsRARC.Position; ReadingPosition < OriginalFileLength; /* なし */)
@@ -318,15 +435,12 @@ namespace ARCTool.FileSys
                 List <List<byte>> ChunkList = new();
                 byte ReadingByte;
 
+
+                //読み込みフラグを作成する
                 for (var ChunkIndex = 0; ChunkIndex < 8; ChunkIndex++)
                 {
                     if (fsRARC.Position >= OriginalFileLength) break;
                     List<byte> ChunkInsideBytes = new();
-
-                    Console.WriteLine("");
-                    Console.WriteLine("チャンクTopFS " + ReadingPosition.ToString("X"));
-                    Console.WriteLine("チャンク " + ChunkIndex.ToString());
-                    Console.WriteLine("fsRARC Pos " + fsRARC.Position.ToString("X"));
 
                     //3バイト目までは必ず書き込む
                     if (fsRARC.Position == 0)
@@ -340,13 +454,9 @@ namespace ARCTool.FileSys
                             DictionaryList.Add(ReadingByte);
                             bwYaz0.Write(ReadingByte);
                         }
-                        Console.WriteLine("1バイト目");
-                        //Console.ReadKey();
+                        //Console.WriteLine("1バイト目");
                         continue;
                     }
-
-                    
-                    
 
                     //ファイル末尾まで残り3バイト以下の処理
                     if (OriginalFileLength < fsRARC.Position + Read_3Byte) 
@@ -360,13 +470,15 @@ namespace ARCTool.FileSys
                         {
                             bwYaz0.Write(brRARC.ReadByte());
                         }
-                        Console.WriteLine("End");
-                        sw.Stop();
-                        Console.WriteLine(sw.Elapsed.ToString());
-                        Console.ReadKey();
+                        //Console.WriteLine("End");
+                        //sw.Stop();
+                        //Console.WriteLine(sw.Elapsed.ToString());
+                        //Console.ReadKey();
                         break;
                     }
 
+                    //通常読み込みの処理の場合に
+                    //ファイルストリームを戻す位置
                     var pos_Byte2nd = fsRARC.Position + 1;
 
                     //★通常読み込みの処理開始
@@ -389,29 +501,20 @@ namespace ARCTool.FileSys
                         DictionaryRange = Dictionary_MaxRange;
                     }
 
-                    //var OriginalDictionaryData = new byte[DictionaryRange];
+                    //辞書データの末尾から、辞書の長さ分のデータを取得する
+                    var ResizedDictionaryData = DictionaryList.TakeLast(DictionaryRange + 1).ToArray();
 
-                    //for (var inside = 0; inside < DictionaryRange; inside++)
-                    //{
-                    //    var pos = fsRARC.Position - DictionaryRange;
-                    //    OriginalDictionaryData[inside] = Original_File[pos + inside];
-                    //}
-
-                    //Console.WriteLine(OriginalDictionaryData.Length.ToString("X"));
+                    ushort MatchByteCount;
+                    ushort MatchByteIndex;
 
 
-                    //Console.WriteLine(Original_File.Length.ToString("X"));
-                    var ResizedDictionaryData = DictionaryList.TakeLast(DictionaryRange).ToArray()/*OriginalDictionaryData*//*Original_File.Take((UInt16)fsRARC.Position - DictionaryRange).ToArray()*/;
-
-                    UInt16 MatchByteCount;
-                    UInt16 MatchByteIndex;
                     bool OldFound = DictionaryFinder_3Byte(ChunkInsideBytes,ResizedDictionaryData,out MatchByteCount);
                     
 
                     //3バイトが見つからなかった場合(通常の処理フラグは1)
-                    if (OldFound == false /*|| (pos_Byte2nd % 0x0F == 0.0000F)*/) 
+                    if (OldFound == false) 
                     {
-                        Console.WriteLine("NormalReading");
+                        //Console.WriteLine("NormalReading");
                         fsRARC.Seek(pos_Byte2nd, SeekOrigin.Begin);
                         ChunkInsideBytes.RemoveAt(ChunkInsideBytes.Count - 1);
                         ChunkInsideBytes.RemoveAt(ChunkInsideBytes.Count - 1);
@@ -422,9 +525,8 @@ namespace ARCTool.FileSys
                         
                         continue;
                     }
-                    //File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
-                    //ここまでチェック済み
 
+                    //ここまでチェック済み
                     if (fsRARC.Position + Dictionary_ReadLength >= OriginalFileLength) break;
 
                     for (var tmp = 0; tmp < (Dictionary_ReadLength + 1); tmp++) 
@@ -436,154 +538,29 @@ namespace ARCTool.FileSys
 
                     if (fsRARC.Position >= OriginalFileLength) break;
 
-                    OldFound = DictionaryFinder_FByte(ChunkInsideBytes, ResizedDictionaryData, out MatchByteCount,out MatchByteIndex);
+                    //Console.WriteLine("pos rarc 0x0Fバイト読み込み後 " + fsRARC.Position.ToString("X"));
+
+
+                    OldFound = DictionaryFinder_FByte(ChunkInsideBytes, ResizedDictionaryData, out MatchByteCount,out MatchByteIndex,fsRARC.Position);
                     
+
+
                     //Fバイトが見つからなかった場合(処理フラグは0)
                     if (OldFound == false)
                     {
-                        Console.WriteLine(((UInt16)(MatchByteIndex + MatchByteCount)).ToString("X2"));
-                        Console.WriteLine(ChunkInsideBytes.Count.ToString("X2"));
-                        
-                        var TestIndex01 = 1 + (MatchByteIndex + MatchByteCount);
-                        var TestIndex02 = (0x12) - (MatchByteIndex + MatchByteCount);
-
-                        Console.WriteLine("TestIndexXX");
-                        Console.WriteLine(TestIndex01.ToString("X"));
-                        Console.WriteLine(TestIndex02.ToString("X"));
-
-                        //Console.WriteLine("dc-mbi-mbc "+((1+(MatchByteIndex + MatchByteCount))).ToString("X"));
-                        //Console.WriteLine((DictionaryList.Count - (0x12) + (MatchByteIndex - MatchByteCount)).ToString("X"));
-                        //ChunkInsideBytes.RemoveRange(ChunkInsideBytes.Count - (MatchByteIndex - MatchByteCount), ChunkInsideBytes.Count - (ChunkInsideBytes.Count - (MatchByteIndex - MatchByteCount)));
-
-                        DictionaryList.RemoveRange(TestIndex01,DictionaryList.Count - TestIndex01 - 1);
-                        //DictionaryList.RemoveRange(DictionaryList.Count - (0x12) + (MatchByteIndex - MatchByteCount), DictionaryList.Count - (DictionaryList.Count - (0x12) + (MatchByteIndex - MatchByteCount)));
-                        ////Console.ReadKey();
-                        Console.WriteLine("pos set");
-                        Console.WriteLine(fsRARC.Position.ToString("X"));
-                        Console.WriteLine(DictionaryList.Count.ToString("X"));
-                        //long pos_Old = TestIndex01;
-                        long pos_Old = fsRARC.Position - (0x12) + (MatchByteIndex - MatchByteCount);
-                        Console.WriteLine("pos " + pos_Old.ToString("X"));
-                        fsRARC.Seek(pos_Old, SeekOrigin.Begin);
-                        Console.WriteLine("OKKKKKKKKKKKKKKKKK");
-                        //Console.ReadKey();
-                        //NormalRead += IsNormalRead[ChunkIndex];
+                        var TestIndex01 =  (MatchByteIndex + MatchByteCount);
+                        var TestIndex02 = (DictionaryList.Count) - (TestIndex01);
+                        long pos_Old = fsRARC.Position - DictionaryList.Count + (TestIndex02/*MatchByteIndex + MatchByteCount*/);
+                        DictionaryList.RemoveRange(ResizedDictionaryData.Length, DictionaryList.Count - ResizedDictionaryData.Length/*DictionaryList.Count - TestIndex01*/);
+                        fsRARC.Seek(/*pos_Old*/ResizedDictionaryData.Length, SeekOrigin.Begin);
                         bwYaz0.Write((byte)(MatchByteCount<<4));
                         bwYaz0.Write((byte)(MatchByteIndex));
-                        Console.WriteLine((MatchByteCount).ToString("X"));
-                        Console.WriteLine((MatchByteIndex).ToString("X"));
-                        //Console.ReadKey();
                         File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
+                        //Console.ReadKey();
                         continue;
                     }
                     Console.WriteLine("おーばー");
                     Console.ReadKey();
-                    continue;
-                    //continue;
-                    //Console.ReadKey();
-                    //File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
-                    //Console.WriteLine(fsRARC.Position);
-                    //brRARC.Close();
-                    //fsRARC.Close();
-                    //bwYaz0.Close();
-                    //msYaz0.Close();
-                    //return;
-
-                    //var FindFromDictionary = Array.LastIndexOf(ResizedDictionaryData, ChunkInsideBytes.ToArray());
-
-                    //Console.WriteLine(FindFromDictionary);
-                    //if (FindFromDictionary == -1)
-                    //{
-                    //    //Console.WriteLine("3ByteNotFound");
-                    //    fsRARC.Seek(pos_Byte2nd, SeekOrigin.Begin);
-                    //    ChunkInsideBytes.RemoveAt(ChunkInsideBytes.Count()-1);
-                    //    NormalRead += IsNormalRead[ChunkIndex];
-                    //    bwYaz0.Write(Byte1st);
-                    //    continue;
-                    //}
-
-                    //var FindFromDictionary = 0;
-
-                    //Console.WriteLine("3ByteFind");
-                    //0xfループByte1st_Top4Byteのサイズ
-                    //byte NewResult1stByte , NewResult2ndByte;
-                    //long pos_OldRARC = fsRARC.Position;
-                    //for (UInt16 l = 0; l < Dictionary_ReadLength; l++) 
-                    //{
-                    //    var TempByte = brRARC.ReadByte();
-                    //    ChunkInsideBytes.Add(TempByte);
-                    //    ResizedDictionaryData = Original_File.TakeLast(DictionaryRange).ToArray();
-                    //    FindFromDictionary = Array.LastIndexOf(ResizedDictionaryData, ChunkInsideBytes);
-                    //    //Console.WriteLine();
-                    //    if (FindFromDictionary == -1) 
-                    //    {
-                    //        fsRARC.Seek(pos_OldRARC,SeekOrigin.Begin);
-                    //        ChunkInsideBytes.RemoveAt(ChunkInsideBytes.Count()-1);
-                    //        var FindByte1stTop4 = (byte)((UInt16)l<<4);
-                    //        var FindByte1stLast4 = (byte)((UInt16)ChunkInsideBytes.Count()>>4);
-                    //        var FindByte2nd = (byte)((UInt16)ChunkInsideBytes.Count() << 4);
-                    //        bwYaz0.Write((byte) FindByte1stTop4 + FindByte1stLast4);
-                    //        bwYaz0.Write((byte) FindByte2nd);
-                    //        Console.WriteLine(((byte)FindByte1stTop4 + FindByte1stLast4).ToString("X"));
-                    //        Console.WriteLine(((byte)FindByte2nd).ToString("X"));
-                    //        break;
-                    //    }
-                    //    pos_OldRARC = fsRARC.Position;
-
-                    //}
-
-                    //if (FindFromDictionary == -1) 
-                    //{
-                    //    //NormalRead += IsNormalRead[ChunkIndex];
-                    //    break;
-                    //}
-
-                    //Console.WriteLine("Find_FD  " + FindFromDictionary.ToString("X"));
-                    //File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
-                    //Console.WriteLine(fsRARC.Position);
-                    brRARC.Close();
-                    fsRARC.Close();
-                    bwYaz0.Close();
-                    msYaz0.Close();
-                    
-                    Console.ReadKey();
-                    return;
-
-                    //while (FindFromDictionary == -1) 
-                    //{
-                    //    if (OriginalFileLength < fsRARC.Position) break;
-
-                        
-
-                    //    //var pos_DictionaryBegin = (fsRARC.Position - 1) - DictionaryRange;
-
-                    //    //Array.Copy(
-                    //    //    Original_File,
-                    //    //    pos_DictionaryBegin,
-                    //    //    OriginalDictionaryData,
-                    //    //    0,
-                    //    //    pos_DictionaryEnd
-                    //    //    );
-
-                    //    ResizedDictionaryData = Original_File.TakeLast(DictionaryRange).ToArray();
-
-                    //    FindFromDictionary = Array.LastIndexOf(ResizedDictionaryData,ChunkInsideBytes);
-
-
-                    //    if (FindFromDictionary == -1) {
-
-                    //        NormalRead += IsNormalRead[ChunkIndex];
-                    //        break;
-                    //    }
-
-                    //    //ResizedDictionaryData.ToList().IndexOf(ChunkList);
-
-                    //    ReadingByte = brRARC.ReadByte();
-                    //    ChunkInsideBytes.Add(ReadingByte);
-                    //    bwYaz0.Write(ReadingByte);
-                    //}
-
-
                     
                     File.WriteAllBytes(Yaz0_FullPath, msYaz0.ToArray());
                     Console.WriteLine(fsRARC.Position);
@@ -597,12 +574,9 @@ namespace ARCTool.FileSys
 
                 msYaz0.Seek(Pos_DummyData, SeekOrigin.Begin);
                 bwYaz0.Write(NormalRead);
-                msYaz0.Seek(msYaz0.Length,SeekOrigin.Begin);
+                msYaz0.Seek(msYaz0.Length, SeekOrigin.Begin);
                 continue;
-                //var Byte2nd = brRARC.ReadByte();
-
-                ////ChunkList.Add(Byte1st);
-                //ChunkList.Add(Byte2nd);
+                
                 //ファイル末尾のための処理
                 long SearchDataSize = 0x0F;
                 long DistanceFromEnd = OriginalFileLength - fsRARC.Position;
@@ -610,15 +584,7 @@ namespace ARCTool.FileSys
                 {
                     SearchDataSize = DistanceFromEnd;
                 }
-                //else if (SearchDataSize > fsRARC.Position)
-                //{
-                //    SearchDataSize = fsRARC.Position;
-                //}
-                //else 
-                //{
-                //    SearchDataSize = 0xF;
-                //}
-                //byte[] BinaryDataToLookFor = new byte[SearchDataSize];
+                
 
                 var DictionaryData = new List<byte>();
                 int FindDistance;
@@ -651,29 +617,7 @@ namespace ARCTool.FileSys
 
 
                 ////検索したいデータを作成
-                //UInt16 FindDictonaryIndex = 0xFFFF;
-                //for (var j = 0; j < SearchDataSize; j++)
-                //{
-                //    BinaryDataToLookFor[j] = brRARC.ReadByte();
-                //    //BinaryDataToLookFor[j] = Original_File[i+j];
-                //    Array.Copy(Original_File, fsRARC.Position - DictionaryReadSize, OriginalDictionaryData, 0, DictionaryReadSize);
-                //    UInt16 TempFindDictonaryIndex = (UInt16)Array.LastIndexOf(OriginalDictionaryData, BinaryDataToLookFor);
-                //    if (TempFindDictonaryIndex == 0xFFFF) continue;
-                //    FindDictonaryIndex = TempFindDictonaryIndex;
-                //}
-
-                //if (FindDictonaryIndex == 0xFFFF) 
-                //{
-                //    for(var k = 0; k < 8; k++) 
-                //    {
-                //        chunkDatas[k].IsRead = true;
-                //        chunkDatas[k].ByteList = new List<byte>();
-                //    }
-
-                //}
-
-                //Array.Copy(Original_File, fsRARC.Position - DictionaryReadSize, OriginalDictionaryData, 0, DictionaryReadSize);
-                //FindDictonaryIndex = (UInt16)Array.LastIndexOf(OriginalDictionaryData, BinaryDataToLookFor);
+                
                 if (fsRARC.Position >= OriginalFileLength) break;
 
 
@@ -685,8 +629,6 @@ namespace ARCTool.FileSys
             fsRARC.Close();
             bwYaz0.Close();
             msYaz0.Close();
-            //fsRARC.Close();
-            //brRARC.Close();
         }
 
 
@@ -739,64 +681,59 @@ namespace ARCTool.FileSys
             return OldFound;
         }
 
-        public static bool DictionaryFinder_FByte(List<byte> ChunkInsideBytes, byte[] ResizedDictionaryData, out UInt16 matchByteCount , out UInt16 matchBtyeIndex) 
+        public static bool DictionaryFinder_FByte(List<byte> ChunkInsideBytes, byte[] ResizedDictionaryData, out UInt16 matchByteCount , out UInt16 matchBtyeIndex , long pos) 
         {
-            
+            const int DictionaryMaxLength = 0x12;
             const byte OffByOne = 1;
             bool OldFound = false;
             matchByteCount = (UInt16)0x000F;
             matchBtyeIndex = (UInt16)0x0FFF;
             
-            for (var Index0 = 0; Index0 < (int)(Dictionary_ReadLength + (Read_3Byte + OffByOne)); Index0++)
+            for (int Index0 = 0; Index0 < DictionaryMaxLength + OffByOne; Index0++)
             {
+                //DictionaryMaxLengthの数分配列を作成
                 bool[] Founds = new bool[Index0 + OffByOne];
-                for (var Index = 0; Index < ResizedDictionaryData.Length - (Index0 + Read_3Byte); Index++)
-                {
-                    for (var Index2 = 0; Index2 < Index0; Index2++)
-                    {
-                        Founds[Index2] = ResizedDictionaryData[Index + Index2] == ChunkInsideBytes[Index2];
-                    }
-                    //falseが含まれる場合
-                    var IsFound = Founds.Where((value) => value == false).ToArray();
-                    Console.WriteLine(IsFound.Length == 0);
-                    if (IsFound.Length == 0) continue;
 
-                    Console.WriteLine(Index0.ToString("X"));
-                    Console.WriteLine("辞書" + ResizedDictionaryData.Length.ToString("X"));
-                    Console.WriteLine(Index.ToString("X"));
+                //Console.WriteLine((((int)pos) - ResizedDictionaryData.Length).ToString("X"));
+                for (int Index = ((int)pos) - ResizedDictionaryData.Length; Index < pos; Index++)
+                {
+                    if (Index0 == 0)
+                    {
+                        //Console.WriteLine("Case 0");
+                        Founds[0] = ResizedDictionaryData[0] == ChunkInsideBytes[0];
+                        //Console.WriteLine("Case 0 end");
+                    }
+                    else 
+                    {
+                        for (int Index2 = 0; Index2 < Index0; Index2++)
+                        {
+                            Founds[Index2] = ResizedDictionaryData[Index + Index2] == ChunkInsideBytes[Index2];
+                            //Console.WriteLine("Index " + Index.ToString("X") + " Index2 " + Index2.ToString("X"));
+                            //Console.Write(ResizedDictionaryData[Index + Index2].ToString("X") + "_比較_");
+                            //Console.WriteLine(ChunkInsideBytes[Index2].ToString("X"));
+                        }
+                    }
+
+                    //Console.WriteLine("OK");
+                    //falseが含まれる場合
+                    var FoundsLength = Founds.Length;
+                    var IsFound = Founds.Where(value => value == false).ToArray();
+                    
+                    //Console.WriteLine(IsFound.Length == 0);
+                    //if (IsFound.Length != 0) continue;
+                    if (IsFound.Length == FoundsLength) continue;
+                    //Console.WriteLine((Index0 + 1).ToString("X"));
+                    //Console.WriteLine("辞書" + ResizedDictionaryData.Length.ToString("X"));
+                    //Console.WriteLine((Index + 3).ToString("X"));
 
                     OldFound = false;
                     matchByteCount = (UInt16)(Index0 + 1);
-                    matchBtyeIndex = (UInt16)(/*ResizedDictionaryData.Length -*/ (Index + 3));
-                    Console.WriteLine("ok 4");
+                    matchBtyeIndex = (UInt16)(/*ResizedDictionaryData.Length -*/ (Index+3));
+                    //Console.WriteLine("ok 4");
                     //Console.ReadKey();
                     return OldFound;
 
                 }
-                //for (var Index = ResizedDictionaryData.Length - (Index0 + Read_3Byte + OffByOne); Index >= 0; Index--)
-                //{
-                //    for (var Index2 = 0; Index2 < Index0; Index2++)
-                //    {
-                //        Founds[Index2] = ResizedDictionaryData[Index + Index2] == ChunkInsideBytes[Index2];
-                //    }
-                //    //falseが含まれる場合
-                //    var IsFound = Founds.Where((value) => value == false).ToArray();
-                //    Console.WriteLine(IsFound.Length == 0);
-                //    if (IsFound.Length == 0) continue;
-
-                //    Console.WriteLine(Index0.ToString("X"));
-                //    Console.WriteLine("辞書" + ResizedDictionaryData.Length.ToString("X"));
-                //    Console.WriteLine(Index.ToString("X"));
-
-                //    OldFound = false;
-                //    matchByteCount = (UInt16)(Index0 + 1);
-                //    matchBtyeIndex = (UInt16)(ResizedDictionaryData.Length - (Index + 1));
-                //    Console.WriteLine("ok 4");
-                //    //Console.ReadKey();
-                //    return OldFound;
-
-                //}
-
             }
             return OldFound;
         }
