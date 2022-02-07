@@ -1,6 +1,6 @@
 # ARCTool
 SMG1,SMG2で使用されるarcファイルを解凍、圧縮できます。<br>
-Yaz0未対応
+Yaz0に対応しました。
 
 ## 使い方
 arcファイルまたは、フォルダをexeファイルに<br>
@@ -38,3 +38,6 @@ XXXXGalaxyDesign.arcを例に解説します。<br>
 孫フォルダ：Path<br>
 孫フォルダ：Placement<br>
 孫フォルダ：Start<br>
+
+### Yaz0の圧縮ファイルの作者
+shevious
