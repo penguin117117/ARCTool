@@ -59,11 +59,7 @@ namespace ARCTool
             var isFirstTime = true;
             foreach (var path in all_path_strings)
             {
-                if (isFirstTime) 
-                {
-                    yesno = Yaz0.Use_Yaz0_Encode();
-                    isFirstTime = false;
-                }
+                
 
 
                 Console.WriteLine("圧縮フォルダパス" + path);
@@ -77,7 +73,11 @@ namespace ARCTool
                 
                 if (Directory.Exists(PathReplace))
                 {
-                    
+                    if (isFirstTime)
+                    {
+                        yesno = Yaz0.Use_Yaz0_Encode();
+                        isFirstTime = false;
+                    }
 
                     Console.WriteLine("圧縮フォルダパス"+PathReplace);
                     var DirStrs = DirectoryFileEdit.DirectoryNameSort(PathReplace);
@@ -92,7 +92,7 @@ namespace ARCTool
                     RARC rarc = new();
 
                     var ArcExtractPath = arcfolder + @"\" + arcfile;
-                    if (yesno == 'y')
+                    if (yesno == 'y' || yesno == 'Y' || yesno == 'ｙ' || yesno == 'Ｙ')
                     {
                         rarc.Archive(ArcExtractPath + ".rarc", DirStrs, FileStrs);
                         Console.WriteLine("yaz0処理に入りました");

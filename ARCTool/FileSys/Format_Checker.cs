@@ -27,7 +27,7 @@ namespace ARCTool.FileSys
             }
             else if (Magic == "Yaz0")
             {
-                Console.WriteLine("Yaz0が含まれたRARCはまだ未対応です");
+                //Console.WriteLine("Yaz0が含まれたRARCはまだ未対応です");
                 Yaz0.Decord(rarc_path);
                 Console.WriteLine("Yaz0End");
                 var savedirectory = rarc_path.Substring(0, rarc_path.LastIndexOf(@"\"));
@@ -42,6 +42,7 @@ namespace ARCTool.FileSys
                 }
                 Console.WriteLine("Yaz0_Path" + Yaz0_Path);
                 RARC.Extract(Yaz0_Path);
+                File.Delete(savefilename);
             }
             else {
                 Console.WriteLine("未対応のファイルです");

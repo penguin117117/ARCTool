@@ -19,9 +19,15 @@ namespace ARCTool.FileSys
 
             Assembly myAssembly = Assembly.GetEntryAssembly();
             string path = myAssembly.Location;
-            var appDirPath = Directory.GetCurrentDirectory();
+            var appDirPath = Path.GetDirectoryName(path);
 
             appDirPath = Path.Combine(appDirPath, "Resources");
+
+            //Console.WriteLine(path);
+
+            //Console.WriteLine(appDirPath + @"\yaz0enc.exe");
+            //Console.WriteLine(appDirPath);
+            //Console.WriteLine(filePath);
 
             ProcessStartInfo psi = new ProcessStartInfo
             {
@@ -46,8 +52,12 @@ namespace ARCTool.FileSys
                 throw new Exception("Yaz0のエンコードで問題が発生しました。");
             }
 
-            if (File.Exists(filePath + ".yaz0"))
+            if (File.Exists(filePath + ".yaz0")) 
+            {
                 File.Copy(filePath + ".yaz0", newYaz0Path, true);
+                File.Delete(filePath);
+                File.Delete(filePath + ".yaz0");
+            }    
             else
                 throw new Exception("rarcファイルがありません");
         }
