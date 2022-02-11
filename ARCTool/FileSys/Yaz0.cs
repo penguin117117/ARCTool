@@ -188,6 +188,7 @@ namespace ARCTool.FileSys
             bwYaz0.Close();
             fs2.Close();
 
+#if DEBUG
             System.Reflection.Assembly myAssembly = System.Reflection.Assembly.GetEntryAssembly();
             string path = myAssembly.Location;
             path = Path.GetDirectoryName(path);
@@ -200,7 +201,7 @@ namespace ARCTool.FileSys
                 
             }
             File.WriteAllText(path + "\\DebugByte.txt", stringBuilder.ToString());
-
+#endif
 
         }
 
@@ -212,54 +213,7 @@ namespace ARCTool.FileSys
             bitlist.Reverse();
             return bitlist;
         }
-
-        //public void Encode(string filepath)
-        //{
-        //    var Yaz0_Dir = filepath.Substring(0, filepath.LastIndexOf(@"\"));
-        //    var Yaz0_file = Path.GetFileNameWithoutExtension(filepath);
-        //    var Yaz0_FullPath = Path.Combine(Yaz0_Dir, Yaz0_file + ".arc");
-
-        //    FileStream fsRARC = new(filepath, FileMode.Open);
-        //    BinaryReader brRARC = new(fsRARC);
-
-        //    FileStream fsYaz0 = new FileStream(Yaz0_FullPath, FileMode.Create);
-        //    BinaryWriter bwYaz0 = new BinaryWriter(fsYaz0);
-
-        //    if (File.Exists(filepath) == false) return;
-        //    var OriginalData = File.ReadAllBytes(filepath);
-        //    OriginalDataSize = OriginalData.Length;
-
-        //    //Yaz0ヘッダー
-        //    CS.String_Writer(bwYaz0, "Yaz0");
-        //    CS.String_Writer_Int(bwYaz0, OriginalDataSize);
-        //    CS.Null_Writer_Int32(bwYaz0, 2);
-
-        //    //group変数
-        //    byte group_head = 0;
-        //    int group_head_length = 0;
-
-        //    //圧縮処理
-        //    while (fsRARC.Length < OriginalDataSize)
-        //    {
-        //        if (group_head_length == 0)
-        //        {
-        //            group_head =
-        //            }
-
-        //        //グループヘッダーバイトを「左に1シフト」
-        //        group_head <<= 1;
-
-        //        //whileループを抜ける条件
-        //        break;
-        //    }
-
-        //    brRARC.Close();
-        //    fsRARC.Close();
-        //    bwYaz0.Close();
-        //    fsYaz0.Close();
-        //}
-
-
+        
         public static byte[] ArrayReverse(byte[] array)
         {
             Array.Reverse(array);

@@ -305,7 +305,7 @@ namespace ARCTool.FileSys
 
             }
             DebugFileName.Reverse();
-            foreach (var te in DebugFileName) Console.WriteLine(te);
+            //foreach (var te in DebugFileName) Console.WriteLine(te);
             //Console.ReadKey();
             //16byte0
             CS.Byte2Int(br);
@@ -325,7 +325,7 @@ namespace ARCTool.FileSys
             }
 
             var testpos = fs.Position;
-            Console.WriteLine(testpos.ToString("X"));
+            //Console.WriteLine(testpos.ToString("X"));
 
             //names
             //Console.ReadKey();
@@ -470,7 +470,7 @@ namespace ARCTool.FileSys
 
                     var testpath = Path.GetFileName(FilePath);
                     //var exlengthnum = CS.ARC_Hash(Path.GetExtension(FilePath)+'\0');
-                    Console.WriteLine(testpath);
+                    //Console.WriteLine(testpath);
                     //Console.Write((CS.ARC_Hash(testpath)+exlengthnum)+"   ");
                     //Console.Write(CS.ARC_Hash2(testpath,(ushort)(testpath.Length + exlengthnum))+"   ");
                     //Console.WriteLine(CS.MSBT_Hash(testpath, exlengthnum));
@@ -583,11 +583,11 @@ namespace ARCTool.FileSys
 
             //FileEntrySection
             var currentfolder = extractPath.Substring(0, extractPath.Count() - 4);
-            Console.WriteLine(currentfolder);
+            //Console.WriteLine(currentfolder);
             string[] dirnode;
             string[] filenode;
             var filesizetotal = 0;
-            foreach (var tesitem in SDFA) Console.WriteLine(tesitem);
+            //foreach (var tesitem in SDFA) Console.WriteLine(tesitem);
             //filestrs.Reverse();
             var filenum = 0;
             var testfilenum = 0;
@@ -613,8 +613,8 @@ namespace ARCTool.FileSys
                         //ディレクトリの数をファイルのインデックス番号に含めない
                         if (DirectoryDepth_LessThan2 != 0x0100) filenum = testfilenum;
 
-                        Console.WriteLine(filenum);
-                        Console.WriteLine(sorted_dirConcatfile[i]);
+                        //Console.WriteLine(filenum);
+                        //Console.WriteLine(sorted_dirConcatfile[i]);
                         //Console.ReadKey();
                         var filename = Path.GetFileName(sorted_dirConcatfile[i]);
                         FileInfo fileinfo = new FileInfo(sorted_dirConcatfile[i]);
@@ -622,7 +622,7 @@ namespace ARCTool.FileSys
 
                         var sdcfList = SDFA.ToList();
                         var sdcfListIndex = sdcfList.IndexOf(sorted_dirConcatfile[i]);
-                        Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
+                        //Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
                         CS.String_Writer_Int(bw, (short)/*fileindex*/filenum);
                         CS.String_Writer_Int(bw, (short)CS.ARC_Hash(filename));
                         switch (Path.GetExtension(sorted_dirConcatfile[i]))
@@ -674,8 +674,8 @@ namespace ARCTool.FileSys
 
                         var sdcfList = SDFA.ToList();
                         var sdcfListIndex = sdcfList.IndexOf(sorted_dirConcatfile[i]);
-                        Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
-                        Console.WriteLine(nameoffset[sdcfListIndex].ToString("X"));
+                        //Console.WriteLine(sdcfListIndex.ToString("X") + "_sdcfListIndex_" + sorted_dirConcatfile[i]);
+                        //Console.WriteLine(nameoffset[sdcfListIndex].ToString("X"));
                         CS.String_Writer_Int(bw, (short)nameoffset[sdcfListIndex]);
                         //Console.WriteLine(dirindex.ToString("X8"));
                         CS.String_Writer_Int(bw, dirindex);

@@ -40,7 +40,6 @@ namespace ARCTool.FileSys
                 }
                 var findnameindex = nameoffsetstr.IndexOf(olddirName + (char)0, indexcount);
                 indexcount = findnameindex + 1;
-                //Console.WriteLine(findnameindex.ToString("X")+"TESTESTES");
                 CS.String_Writer_Int(bw, nameoffset[findnameindex]);
                 CS.String_Writer_Int(bw, (short)CS.ARC_Hash(olddirName));
                 CS.String_Writer_Int(bw, (short)IDIC[i]);
@@ -48,7 +47,6 @@ namespace ARCTool.FileSys
                 CS.String_Writer_Int(bw, nodeitemcounter);
                 nodeitemcounter += IDIC[i];
             }
-            Console.WriteLine("nodeitemtotal________________"+nodeitemcounter.ToString("X"));
             return nodeitemcounter;
         }
     }

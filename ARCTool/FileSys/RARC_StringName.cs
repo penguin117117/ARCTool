@@ -29,7 +29,6 @@ namespace ARCTool.FileSys
                 NameOffset.Add((int)ms.Position);
                 NameOffsetStr.Add(FileName);
                 CS.String_Writer(bw, FileName);
-                //Console.WriteLine(FileName + "testes");
             }
         }
     }

@@ -11,21 +11,14 @@ namespace ARCTool.FileSys
     public class RARC_Directory_Structure
     {
         public BinaryWriter bw { get; set; }
-        //public List<string> listdirfile { get; set; }
-        //public string parentString { get; set; }
         public string[] dirstrs { get; set; }
         public string node { get; set; }
         public void Writer() {
             var listdirfile = dirstrs.ToList();
             var parentString = node.Substring(0, node.LastIndexOf(@"\"));
-            //var dirparent = listdirfile2.IndexOf();
             var parentDir = listdirfile.IndexOf(parentString);
             var nowDir = listdirfile.IndexOf(node);
 
-
-
-            Console.WriteLine(nowDir + "_____________________index番号");
-            Console.WriteLine(parentDir + "_____________________親index番号");
             CS.String_Writer_Int(bw, (short)-1);
             CS.String_Writer_Int(bw, (short)CS.ARC_Hash("."));
             CS.String_Writer_Int(bw, (short)0x0200);
