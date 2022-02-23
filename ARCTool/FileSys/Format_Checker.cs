@@ -20,6 +20,8 @@ namespace ARCTool.FileSys
             fs.Close();
             br.Close();
 
+            Console.WriteLine(BitConverter.ToString(Encoding.GetEncoding("utf-16").GetBytes(Magic)));
+
             if (Magic == "RARC")
             {
                 Console.WriteLine("RARCです");
@@ -44,8 +46,10 @@ namespace ARCTool.FileSys
                 RARC.Extract(Yaz0_Path);
                 File.Delete(savefilename);
             }
-            else {
+            else
+            {
                 Console.WriteLine("未対応のファイルです");
+                Console.ReadKey();
             }
 
         }

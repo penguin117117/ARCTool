@@ -62,7 +62,7 @@ namespace ARCTool
                 
 
 
-                Console.WriteLine("圧縮フォルダパス" + path);
+                //Console.WriteLine("圧縮フォルダパス" + path);
                 if (File.Exists(path))
                 {
                     Format_Checker.Type_Check(path);
@@ -79,7 +79,7 @@ namespace ARCTool
                         isFirstTime = false;
                     }
 
-                    Console.WriteLine("圧縮フォルダパス"+PathReplace);
+                    //Console.WriteLine("圧縮フォルダパス"+PathReplace);
                     var DirStrs = DirectoryFileEdit.DirectoryNameSort(PathReplace);
                     var FileStrs = DirectoryFileEdit.FileNameSort(PathReplace);
                     if (DirStrs.Length < 1) continue;
