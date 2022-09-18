@@ -172,30 +172,10 @@ namespace ARCTool.FileSys
                 for (int i = 0; i < information.NodeLength; i++)
                 {
                     Data.Add(NodeInformation.Read(br));
-
-                    //var Identifier = CS.Byte2Char(br);
-                    //var StringTopOffset = CS.Byte2Int(br);
-                    //var StringHash = CS.Byte2UShort(br);
-                    //var ThisFolderDirectoryCount = CS.Byte2Short(br);
-                    //var FirstDirectoryIndex = CS.Byte2Int(br);
-                    //Node_Items.Add(new node_items(Identifier, StringTopOffset, StringHash, ThisFolderDirectoryCount, FirstDirectoryIndex));
-                    //Console.WriteLine((Identifier + "__" + StringTopOffset.ToString("X8") + "__" + StringHash.ToString("X4") + "__" + ThisFolderDirectoryCount.ToString("X4") + "__" + FirstDirectoryIndex.ToString("X8")));
                 }
 
                 br.BaseStream.Position = PaddingSkipEndPosition(br.BaseStream.Position);
             }
-
-            //private NodeInformation Read_NodeInformationData(BinaryReader br) 
-            //{
-            //    return new NodeInformation
-            //    {
-            //        ID = CS.Byte2Char(br),
-            //        StringTopOffset = CS.Byte2Int(br),
-            //        StringHash = CS.Byte2UShort(br),
-            //        FolderDirectoryCount = CS.Byte2Short(br),
-            //        FirstDirectoryIndex = CS.Byte2Int(br)
-            //    };
-            //}
         }
 
         HeaderData Header = new HeaderData();
@@ -458,7 +438,7 @@ namespace ARCTool.FileSys
             short DSL = (short)DirectoryStrings.Length;
             short AllFileCount = FSL;
             var HasTwoDepth = true;
-
+            Console.WriteLine($"FSL{FSL}");
             //var TmpDir = Directory.GetDirectories(DirectoryStrings[0], "*", SearchOption.TopDirectoryOnly);
             //foreach (var TmpTmpDir in TmpDir) {
             //    var Tmp3Dir = Directory.GetDirectories(TmpTmpDir, "*", SearchOption.TopDirectoryOnly).Length;
@@ -468,24 +448,30 @@ namespace ARCTool.FileSys
             //    } 
             //}
 
-            foreach (var tes in DirectoryStrings) {
-                var dir = Directory.GetDirectories(tes, "*", SearchOption.TopDirectoryOnly).Length;
-                var file = Directory.GetFiles(tes, "*", SearchOption.TopDirectoryOnly).Length;
-                if ((dir + file) > 2) {
+            foreach (var dirName in DirectoryStrings) {
+                var dir = Directory.GetDirectories(dirName, "*", SearchOption.TopDirectoryOnly).Length;
+                var file = Directory.GetFiles(dirName, "*", SearchOption.TopDirectoryOnly).Length;
+                Console.WriteLine($"dir{dir}:file{file}");
+                if ((dir + file) < 3) {
+                    
                     HasTwoDepth = false;
                     break;
                 }
             }
+
 
             //Console.ReadKey();
             //ディレクトリの深さが3以上の場合の処理
             if (HasTwoDepth)
             {
                 DirectoryDepthType = 0x0100;
-                AllFileCount = (short)(FSL + (DSL - 1) + (DSL * 2));
+                AllFileCount = (short)(FSL + (DSL - (short)1) + (DSL * (short)2));
+                return AllFileCount;
             }
-            return AllFileCount;
 
+            Console.WriteLine($"Has not TwoDepth{AllFileCount}");
+            Console.ReadKey();
+            return AllFileCount;
         }
 
         /// <summary>

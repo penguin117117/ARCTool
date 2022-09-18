@@ -44,7 +44,7 @@ namespace ARCTool.FileSys
                 }
                 Console.WriteLine("Yaz0_Path" + Yaz0_Path);
                 RARC.Extract(Yaz0_Path);
-                File.Delete(savefilename);
+                //File.Delete(savefilename);
             }
             else
             {

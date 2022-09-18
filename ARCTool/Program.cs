@@ -82,6 +82,8 @@ namespace ARCTool
                     //Console.WriteLine("圧縮フォルダパス"+PathReplace);
                     var DirStrs = DirectoryFileEdit.DirectoryNameSort(PathReplace);
                     var FileStrs = DirectoryFileEdit.FileNameSort(PathReplace);
+
+                    Console.WriteLine($"ファイル数{FileStrs.Length}");
                     if (DirStrs.Length < 1) continue;
                     if (FileStrs.Length < 1) continue;
 
@@ -110,6 +112,7 @@ namespace ARCTool
 
                     rarc.Archive(ArcExtractPath + ".arc", DirStrs, FileStrs);
                     Console.WriteLine("Yaz0処理をしていません");
+                    Console.ReadKey();
                 }
             }
         }
