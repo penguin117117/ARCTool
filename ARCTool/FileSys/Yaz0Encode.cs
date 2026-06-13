@@ -13,6 +13,70 @@ internal unsafe class Yaz0Encode
 
     private const int Max_Dictionary_Offset = 0x0FFF;
 
+    private struct Chain
+    {
+        private const int prev_Size = 0x100_0000;
+        public const int key_size = Byte2_Additional_Length + 1;
+
+        // int = 32 ビットを基準とします。
+        private int[] toPrevPos;
+        private int[] prevPosChain;
+        private int lastUpdatePos;
+
+        public Chain(int srcSize)
+        {
+            toPrevPos = new int[prev_Size];
+            prevPosChain = new int[srcSize];
+            lastUpdatePos = 0;
+
+            for (int i = 0; i < prev_Size; i++)
+            {
+                toPrevPos[i] = 0;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int GenKey(byte* src, int srcSize, int srcPos)
+        {
+            int retValue = 0;
+            if (srcSize - srcPos < key_size)
+                return prev_Size;
+
+            for (int i = 0; i < key_size; i++)
+                retValue |= src[srcPos + i] << (8 * i);
+            return retValue;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetPos(byte* src, int srcSize, int srcPos)
+        {
+            var key = GenKey(src, srcSize, lastUpdatePos);
+            if (key >= prev_Size)
+                return 0;
+            return toPrevPos[key];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int GetPrev(int pos)
+        {
+            return prevPosChain[pos];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void UpdateChain(byte* src, int srcSize, int srcPos)
+        {
+            for (; lastUpdatePos < srcPos; lastUpdatePos++)
+            {
+                int key = GenKey(src, srcSize, lastUpdatePos);
+                if (key >= prev_Size)
+                    continue;
+                prevPosChain[lastUpdatePos] = toPrevPos[key];
+                toPrevPos[key] = lastUpdatePos;
+            }
+        }
+    }
+
     private struct Unit
     {
         public int Length;
@@ -38,58 +102,65 @@ internal unsafe class Yaz0Encode
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Write(int* flag, int writeFlagCount, byte* dst, int* pos, byte* src, in int srcPos)
+        public int Write(int* flag, int writeFlagCount, byte* dst, int* dstPos, byte* src, in int srcPos)
         {
             if (Length > Byte2_Additional_Length)
             {
-                dst[*pos + 0x01] = (byte)(0xFF & Offset);
+                dst[*dstPos + 0x01] = (byte)(0xFF & Offset);
 
                 int length = 0;
                 if (Length >= Byte3_Additional_Length)
                 {
-                    dst[*pos] = (byte)(0x0F & (Offset >> 0x08));
+                    dst[*dstPos] = (byte)(0x0F & (Offset >> 0x08));
                     length = Length - Byte3_Additional_Length;
-                    dst[*pos + 0x02] = (byte)length;
-                    *pos += 0x03;
+                    dst[*dstPos + 0x02] = (byte)length;
+                    *dstPos += 0x03;
                     return Length;
                 }
 
                 length = Length - Byte2_Additional_Length;
-                dst[*pos] = (byte)((0xF0 & (length << 0x04)) | (0x0F & (Offset >> 0x08)));
-                *pos += 0x02;
+                dst[*dstPos] = (byte)((0xF0 & (length << 0x04)) | (0x0F & (Offset >> 0x08)));
+                *dstPos += 0x02;
                 return Length;
             }
 
             *flag |= 0b1000_0000 >> writeFlagCount;
-            dst[*pos] = src[srcPos];
-            *pos += 1;
+            dst[*dstPos] = src[srcPos];
+            *dstPos += 1;
             return 0x01;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Init(byte* data, int size, int pos)
+        public void Init(ref Chain chain, byte* src, int srcSize, int srcPos)
         {
+            chain.UpdateChain(src, srcSize, srcPos);
+
             Length = 2;
             Offset = 0;
 
-            if (pos >= size) return;
+            if (srcPos >= srcSize) return;
 
-            int maxCompSize = (size - pos < Byte3_Max_Dictionary_Length)
-                                   ? size - pos
+            int maxCompSize = (srcSize - srcPos < Byte3_Max_Dictionary_Length)
+                                   ? srcSize - srcPos
                                    : Byte3_Max_Dictionary_Length;
 
-            int startDictPos = (pos > Max_Dictionary_Offset)
-                                    ? (pos - 1) - Max_Dictionary_Offset
+            // pos - 1でoffsetが0の時の位置を計算。
+            // *Max_Dictionary_Offset* > (Max_Dictionary_Offset + 1) 
+            // となるように調整。
+            int startDictPos = (srcPos > (Max_Dictionary_Offset - 1))
+                                    ? (srcPos - 1) - (Max_Dictionary_Offset - 1)
                                     : 0;
 
-            for (int dictPos = startDictPos; dictPos < pos; dictPos++)
+            for (int dictPos = chain.GetPos(src, srcSize, srcPos); dictPos > startDictPos; dictPos = chain.GetPrev(dictPos))
             {
-                // 早期リジェクション：先頭文字と、現在見つかっている最大長の先の文字が一致しないならパス
-                if (data[dictPos] != data[pos] || data[dictPos + Length - 1] != data[pos + Length - 1])
+                // 早期リジェクション：現在見つかっている最大長の先の文字が一致しないならパス
+                if (src[dictPos + Length - 1] != src[srcPos + Length - 1])
                     continue;
 
-                int length = 0;
-                while (length < maxCompSize && data[dictPos + length] == data[pos + length])
+                // keyの関係上すでにkey_size分は合っている。
+                int length = Chain.key_size;
+
+                while (length < maxCompSize && src[dictPos + length] == src[srcPos + length])
                 {
                     length++;
                 }
@@ -98,14 +169,11 @@ internal unsafe class Yaz0Encode
                 {
                     Length = length;
                     Offset = dictPos;
-
-                    if (length == maxCompSize)
-                        break;
                 }
             }
 
             // ここで「相対距離」を計算して保持する（0から始まる値、1文字前なら0）
-            Offset = (pos - 1) - Offset;
+            Offset = (srcPos - 1) - Offset;
         }
 
     }
@@ -120,6 +188,7 @@ internal unsafe class Yaz0Encode
         int flagPos = dstPos;
         int writeFlagCount = 7;
 
+        Chain chain = new(size);
         Unit currentUnit = default;
         Unit nextUnit = default;
         bool isNextUnitValid = false;
@@ -142,10 +211,10 @@ internal unsafe class Yaz0Encode
             }
             else
             {
-                currentUnit.Init(src, size, srcPos);
+                currentUnit.Init(ref chain, src, size, srcPos);
             }
 
-            nextUnit.Init(src, size, srcPos + 1);
+            nextUnit.Init(ref chain, src, size, srcPos + 1);
 
             isNextUnitValid = nextUnit.Score(1) > currentUnit.Score(0);
             if (isNextUnitValid)
