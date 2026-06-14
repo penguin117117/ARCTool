@@ -1,5 +1,7 @@
 # ARCTool
 <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/penguin117117/ARCTool/total"><br>
+<img alt="GitHub release downloads" src="https://img.shields.io/github/downloads/penguin117117/ARCTool/Pre_ARCTool_ver0.3.0.0/total"><br>
+<img alt="GitHub release downloads" src="https://img.shields.io/github/downloads/penguin117117/ARCTool/0.2.1.0/total"><br>
 SMG1,SMG2で使用されるarcファイルを解凍、圧縮できます。<br>
 Yaz0に対応しました。
 
