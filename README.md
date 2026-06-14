@@ -5,6 +5,12 @@
 SMG1,SMG2で使用されるarcファイルを解凍、圧縮できます。<br>
 Yaz0に対応しました。
 
+最新のテスト版は、以下のリリースページから入手できます。
+* [ARCTool ver0.3.0.0 Pre-release](https://github.com/penguin117117/ARCTool/releases/tag/Pre_ARCTool_ver0.3.0.0)
+
+安定版は、以下のリリースページから入手できます。
+* [ARCTool ver0.2.1.0](https://github.com/penguin117117/ARCTool/releases/tag/0.2.1.0)
+
 ## 使い方
 arcファイルまたは、フォルダをexeファイルに<br>
 ドラッグアンドドロップするだけです。<br>
