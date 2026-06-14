@@ -8,6 +8,7 @@ using System.IO;
 using ARCTool.FileSys;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 
 namespace ARCTool
@@ -20,7 +21,6 @@ namespace ARCTool
         private static string[] arc_path_strings;
         private static string[] dir_path_strings;
         private static Yaz0.UseStatus yaz0EncodeStatus = Yaz0.UseStatus.UnUse;
-        private static bool isOptimize = false;
 
         public static void Main(string[] args)
         {
@@ -47,24 +47,13 @@ namespace ARCTool
             IEnumerable<string> aps = all_path_strings.Skip(1);
             all_path_strings = aps.ToArray();
 
-
-            //Console.WriteLine("全ての項目にYaz0圧縮をしますか？");
-            //Console.WriteLine("※解凍時は自動でYaz0の処理を実行します。");
-            //Console.WriteLine("y Yaz0圧縮を使用　n Yaz0圧縮を使用しない");
-
-            //var yesnoChars = Console.ReadLine().ToCharArray();
-            //yesno = yesnoChars[0];
-
-
-            //Console.WriteLine("全パス2"+all_path_strings.Count());
+            Debug.WriteLine("全パス数"+ all_path_strings.Count());
 
             Yaz0 yaz0 = new();
 
             var isFirstTime = true;
             foreach (var path in all_path_strings)
             {
-
-
 
                 //Console.WriteLine("圧縮フォルダパス" + path);
                 if (File.Exists(path))
@@ -80,10 +69,6 @@ namespace ARCTool
                     if (isFirstTime)
                     {
                         yaz0EncodeStatus = Yaz0.Use_Yaz0_Encode();
-                        if (yaz0EncodeStatus is Yaz0.UseStatus.UseNew)
-                        {
-                            isOptimize = Yaz0.Use_Yaz0_Encode_Optimize();
-                        }
                         isFirstTime = false;
                     }
 
@@ -112,14 +97,8 @@ namespace ARCTool
                         Console.WriteLine("圧縮中・・・");
 
                         memst.Seek(0, SeekOrigin.Begin);
-                        if (isOptimize)
-                        {
-                            yaz0.EncodeOptimizeV2(Path.ChangeExtension(ArcExtractPath, "arc"), new BinaryReader(memst));
-                        }
-                        else
-                        {
-                            yaz0.Encode(Path.ChangeExtension(ArcExtractPath, "arc"), new BinaryReader(memst));
-                        }
+
+                        yaz0.EncodeOptimizeV2(Path.ChangeExtension(ArcExtractPath, "arc"), new BinaryReader(memst));
 
                         memst.Close();
 
